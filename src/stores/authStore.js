@@ -81,12 +81,10 @@ export const useAuthStore = create((set, get) => ({
   },
 
   isAdmin: () => {
-    const { profile } = get()
-    return profile?.role === 'admin' || profile?.role === 'super_admin'
+    return get().profile?.role === 'admin' || get().profile?.role === 'super_admin'
   },
 
   isSuperAdmin: () => {
-    const { profile } = get()
-    return profile?.role === 'super_admin'
+    return get().profile?.role === 'super_admin'
   },
 }))
