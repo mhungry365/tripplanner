@@ -1,0 +1,154 @@
+import { useState } from 'react'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../stores/authStore'
+import {
+  LayoutDashboard, Map, Compass, User, LogOut, Settings,
+  Shield, Menu, X, Bell, Plus, ChevronDown
+} from 'lucide-react'
+import { APP_NAME } from '../../lib/constants'
+import toast from 'react-hot-toast'
+
+const navItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/trips',     label: 'My Trips',  icon: Map },
+  { path: '/explore',   label: 'Explore',   icon: Compass },
+  { path: '/profile',   label: 'Profile',   icon: User },
+]
+
+export default function AppLayout() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { profile, signOut, isAdmin } = useAuthStore()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+
+  const handleSignOut = async () => {
+    await signOut()
+    toast.success('Signed out successfully')
+    navigate('/')
+  }
+
+  const NavLink = ({ item }) => {
+    const Icon = item.icon
+    const active = location.pathname === item.path ||
+      (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+    return (
+      <Link to={item.path} onClick={() => setSidebarOpen(false)}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200
+          ${active
+            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+          }`}>
+        <Icon size={18} />
+        {item.label}
+      </Link>
+    )
+  }
+
+  const Sidebar = () => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="p-6 border-b border-slate-100">
+        <Link to="/dashboard" className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-md">
+            <span className="text-xl">🌍</span>
+          </div>
+          <div>
+            <div className="text-lg font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
+              {APP_NAME}
+            </div>
+            <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Plan Smart. Explore More.</div>
+          </div>
+        </Link>
+      </div>
+
+      {/* New Trip CTA */}
+      <div className="px-4 pt-4">
+        <Link to="/trips/new"
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:from-sky-600 hover:to-indigo-700">
+          <Plus size={16} />
+          New Trip
+        </Link>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 p-4 space-y-1">
+        {navItems.map(item => <NavLink key={item.path} item={item} />)}
+        {isAdmin() && (
+          <NavLink item={{ path: '/admin', label: 'Admin Panel', icon: Shield }} />
+        )}
+      </nav>
+
+      {/* Profile */}
+      <div className="p-4 border-t border-slate-100">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+            {profile?.full_name?.[0]?.toUpperCase() || 'W'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-800 truncate">{profile?.full_name}</p>
+            <p className="text-xs text-slate-400 truncate capitalize">{profile?.role?.replace('_', ' ')}</p>
+          </div>
+          <button onClick={handleSignOut} className="text-slate-400 hover:text-red-500 transition-colors" title="Sign out">
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-slate-100 fixed top-0 left-0 h-full z-30">
+        <Sidebar />
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <aside className="relative w-72 bg-white h-full flex flex-col shadow-xl">
+            <button onClick={() => setSidebarOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:bg-slate-100">
+              <X size={18} />
+            </button>
+            <Sidebar />
+          </aside>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        {/* Top bar */}
+        <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+          <button onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+            <Menu size={20} />
+          </button>
+          <div className="hidden lg:block">
+            <h1 className="text-lg font-bold text-slate-800 font-display">
+              {navItems.find(n => location.pathname.startsWith(n.path))?.label || 'TripPlanner'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3 ml-auto">
+            <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors">
+              <Bell size={18} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+            </button>
+            <Link to="/trips/new" className="btn-primary text-sm py-2 hidden sm:flex items-center gap-1.5">
+              <Plus size={16} /> New Trip
+            </Link>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 p-6">
+          <div className="page-enter">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
