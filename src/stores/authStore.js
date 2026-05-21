@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
+const PROFILE_COLS = 'id,full_name,email,role,avatar_url,bio,location,created_at'
+
 export const useAuthStore = create((set, get) => ({
   user: null,
   profile: null,
@@ -8,10 +10,13 @@ export const useAuthStore = create((set, get) => ({
   initialized: false,
 
   initialize: async () => {
-    // Use onAuthStateChange as the sole source of truth.
-    // INITIAL_SESSION fires once immediately (with session or null), which avoids
-    // the race where getSession() returns null before detectSessionInUrl finishes
-    // processing OAuth tokens from the URL after redirect.
+    // Hard timeout — app never stays stuck on the loading screen.
+    const failsafe = setTimeout(() => {
+      if (!get().initialized) {
+        set({ loading: false, initialized: true })
+      }
+    }, 5000)
+
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         set({ user: session.user })
@@ -20,15 +25,16 @@ export const useAuthStore = create((set, get) => ({
         set({ user: null, profile: null })
       }
       if (!get().initialized) {
+        clearTimeout(failsafe)
         set({ loading: false, initialized: true })
       }
     })
   },
 
   fetchProfile: async (userId) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .select('id,full_name,email,role,avatar_url,bio,location,created_at')
+      .select(PROFILE_COLS)
       .eq('id', userId)
       .single()
 
@@ -37,7 +43,9 @@ export const useAuthStore = create((set, get) => ({
       return
     }
 
-    // Profile missing — trigger failed for this OAuth user. Create it now.
+    // No profile row — create one now (trigger may have failed for OAuth users).
+    if (error?.code !== 'PGRST116') return // only handle "row not found"
+
     const { data: authData } = await supabase.auth.getUser()
     const authUser = authData?.user
     if (!authUser) return
@@ -50,7 +58,7 @@ export const useAuthStore = create((set, get) => ({
         full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || '',
         avatar_url: authUser.user_metadata?.avatar_url || null,
       }, { onConflict: 'id' })
-      .select('id,full_name,email,role,avatar_url,bio,location,created_at')
+      .select(PROFILE_COLS)
       .single()
 
     if (newProfile) set({ user: newProfile, profile: newProfile })
@@ -96,17 +104,12 @@ export const useAuthStore = create((set, get) => ({
       .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', profile.id)
-      .select('id,full_name,email,role,avatar_url,bio,location,created_at')
+      .select(PROFILE_COLS)
       .single()
     if (data) set({ profile: data, user: data })
     return { data, error }
   },
 
-  isAdmin: () => {
-    return get().profile?.role === 'admin' || get().profile?.role === 'super_admin'
-  },
-
-  isSuperAdmin: () => {
-    return get().profile?.role === 'super_admin'
-  },
+  isAdmin: () => get().profile?.role === 'admin' || get().profile?.role === 'super_admin',
+  isSuperAdmin: () => get().profile?.role === 'super_admin',
 }))
