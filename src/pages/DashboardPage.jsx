@@ -1,28 +1,54 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useTripsStore } from '../stores/tripsStore'
-import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass } from 'lucide-react'
 import { TRIP_STATUSES } from '../lib/constants'
 import { format } from 'date-fns'
+
+function StarRating({ rating }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map(i => (
+        <Star key={i} size={10} className={i <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'} />
+      ))}
+    </div>
+  )
+}
+
+const INSPIRATION = [
+  { emoji: '🗼', title: 'Paris in Spring', desc: 'Cherry blossoms and café terraces await', tag: 'Europe' },
+  { emoji: '🏯', title: 'Japan Cherry Blossoms', desc: 'March–April is pure magic in Kyoto', tag: 'Asia' },
+  { emoji: '🏝️', title: 'Bali Retreat', desc: 'Find your zen among rice terraces', tag: 'Asia' },
+]
 
 export default function DashboardPage() {
   const { profile } = useAuthStore()
   const { trips, fetchTrips } = useTripsStore()
+  const [trending, setTrending] = useState([])
 
   useEffect(() => {
     if (profile?.id) fetchTrips(profile.id)
   }, [profile?.id])
+
+  useEffect(() => {
+    supabase.from('destinations')
+      .select('id, city, country_name, flag_emoji, cover_image_url, safety_rating, avg_daily_budget_usd')
+      .order('popularity_score', { ascending: false })
+      .limit(6)
+      .then(({ data }) => setTrending(data || []))
+  }, [])
 
   const activeTrips = trips.filter(t => ['planning','confirmed','ongoing'].includes(t.status))
   const completedTrips = trips.filter(t => t.status === 'completed')
   const upcomingTrip = trips.find(t => t.status === 'confirmed' || t.status === 'planning')
 
   const stats = [
-    { label: 'Total Trips', value: trips.length, icon: Map, color: 'from-sky-400 to-sky-600', bg: 'bg-sky-50', text: 'text-sky-600' },
-    { label: 'Completed', value: completedTrips.length, icon: Globe, color: 'from-emerald-400 to-teal-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Active Plans', value: activeTrips.length, icon: Calendar, color: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', text: 'text-amber-600' },
-    { label: 'Countries', value: profile?.total_countries || 0, icon: TrendingUp, color: 'from-indigo-400 to-violet-600', bg: 'bg-indigo-50', text: 'text-indigo-600' },
+    { label: 'Total Trips',  value: trips.length,             icon: Map,         bg: 'bg-sky-50',     text: 'text-sky-600' },
+    { label: 'Completed',    value: completedTrips.length,     icon: Globe,       bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    { label: 'Active Plans', value: activeTrips.length,        icon: Calendar,    bg: 'bg-amber-50',   text: 'text-amber-600' },
+    { label: 'Countries',    value: profile?.total_countries || 0, icon: TrendingUp, bg: 'bg-indigo-50', text: 'text-indigo-600' },
   ]
 
   const hour = new Date().getHours()
@@ -30,7 +56,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Welcome */}
+      {/* Welcome banner */}
       <div className="bg-gradient-to-br from-sky-600 via-indigo-600 to-violet-700 rounded-3xl p-8 text-white relative overflow-hidden">
         <div className="absolute right-6 top-4 text-6xl opacity-20 animate-float">🌍</div>
         <div className="relative">
@@ -39,12 +65,18 @@ export default function DashboardPage() {
           <p className="text-white/60 text-sm mb-5">
             {trips.length === 0
               ? "You haven't planned any trips yet. Let's change that!"
-              : `You have ${activeTrips.length} active trip${activeTrips.length !== 1 ? 's' : ''} in progress.`
-            }
+              : `You have ${activeTrips.length} active trip${activeTrips.length !== 1 ? 's' : ''} in progress.`}
           </p>
-          <Link to="/trips/new" className="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-white/90 transition-all shadow">
-            <Plus size={16} /> Plan new trip
-          </Link>
+          <div className="flex gap-3 flex-wrap">
+            <Link to="/trips/new"
+              className="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-white/90 transition-all shadow">
+              <Plus size={16} /> Plan new trip
+            </Link>
+            <Link to="/explore"
+              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-white/20 transition-all border border-white/20">
+              <Compass size={16} /> Explore
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -54,10 +86,8 @@ export default function DashboardPage() {
           const Icon = s.icon
           return (
             <div key={s.label} className="card">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}>
-                  <Icon size={18} className={s.text} />
-                </div>
+              <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
+                <Icon size={18} className={s.text} />
               </div>
               <div className="text-3xl font-bold font-display text-slate-900">{s.value}</div>
               <div className="text-sm text-slate-500 mt-1">{s.label}</div>
@@ -66,12 +96,44 @@ export default function DashboardPage() {
         })}
       </div>
 
+      {/* Trending Destinations */}
+      {trending.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="section-title">Trending Destinations</h2>
+              <p className="text-slate-400 text-xs mt-0.5">Most popular right now</p>
+            </div>
+            <Link to="/explore" className="text-sm font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1">
+              View all <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {trending.map(d => (
+              <Link key={d.id} to="/explore"
+                className="relative h-32 rounded-2xl overflow-hidden group shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+                {d.cover_image_url ? (
+                  <img src={d.cover_image_url} alt={d.city}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-indigo-600" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="text-white font-bold text-xs font-display leading-tight">{d.city}</div>
+                  <div className="text-white/70 text-[10px]">{d.flag_emoji} {d.country_name}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Upcoming trip */}
       {upcomingTrip && (
         <div>
           <h2 className="section-title mb-4">Upcoming Trip</h2>
-          <Link to={`/trips/${upcomingTrip.id}`}
-            className="card-hover block p-6">
+          <Link to={`/trips/${upcomingTrip.id}`} className="card-hover block p-6">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-xl font-bold font-display text-slate-900 mb-1">{upcomingTrip.title}</div>
@@ -102,7 +164,24 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent trips */}
+      {/* Travel Inspiration */}
+      <div>
+        <h2 className="section-title mb-4">Travel Inspiration</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          {INSPIRATION.map(ins => (
+            <Link key={ins.title} to="/explore" className="card-hover p-5 flex items-start gap-4">
+              <div className="text-4xl flex-shrink-0">{ins.emoji}</div>
+              <div>
+                <div className="font-bold text-slate-800 font-display mb-1">{ins.title}</div>
+                <p className="text-sm text-slate-500 mb-2">{ins.desc}</p>
+                <span className="text-xs font-semibold bg-sky-50 text-sky-600 px-2.5 py-0.5 rounded-full">{ins.tag}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Trips */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="section-title">Recent Trips</h2>

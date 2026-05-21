@@ -8,26 +8,18 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import DashboardPage from './pages/DashboardPage'
+import FeedPage from './pages/FeedPage'
 import TripsPage from './pages/TripsPage'
 import TripDetailPage from './pages/TripDetailPage'
 import NewTripPage from './pages/NewTripPage'
 import ExplorePage from './pages/ExplorePage'
 import ProfilePage from './pages/ProfilePage'
-import AdminPage from './pages/AdminPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuthStore()
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
-  return children
-}
-
-function AdminRoute({ children }) {
-  const { user, loading, isAdmin } = useAuthStore()
-  if (loading) return <LoadingScreen />
-  if (!user) return <Navigate to="/login" replace />
-  if (!isAdmin()) return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -57,29 +49,22 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Public landing */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-      {/* Auth routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       </Route>
 
-      {/* App routes */}
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-        <Route path="/dashboard"        element={<DashboardPage />} />
-        <Route path="/trips"            element={<TripsPage />} />
-        <Route path="/trips/new"        element={<NewTripPage />} />
-        <Route path="/trips/:id"        element={<TripDetailPage />} />
-        <Route path="/explore"          element={<ExplorePage />} />
-        <Route path="/profile"          element={<ProfilePage />} />
-      </Route>
-
-      {/* Admin routes */}
-      <Route element={<AdminRoute><AppLayout /></AdminRoute>}>
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/feed"      element={<FeedPage />} />
+        <Route path="/trips"     element={<TripsPage />} />
+        <Route path="/trips/new" element={<NewTripPage />} />
+        <Route path="/trips/:id" element={<TripDetailPage />} />
+        <Route path="/explore"   element={<ExplorePage />} />
+        <Route path="/profile"   element={<ProfilePage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

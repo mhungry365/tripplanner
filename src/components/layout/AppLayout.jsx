@@ -1,26 +1,23 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
-import {
-  LayoutDashboard, Map, Compass, User, LogOut, Settings,
-  Shield, Menu, X, Bell, Plus, ChevronDown
-} from 'lucide-react'
+import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus } from 'lucide-react'
 import { APP_NAME } from '../../lib/constants'
 import toast from 'react-hot-toast'
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/trips',     label: 'My Trips',  icon: Map },
+  { path: '/feed',      label: 'Feed',      icon: Heart },
   { path: '/explore',   label: 'Explore',   icon: Compass },
+  { path: '/trips',     label: 'My Trips',  icon: Map },
   { path: '/profile',   label: 'Profile',   icon: User },
 ]
 
 export default function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { profile, signOut, isAdmin } = useAuthStore()
+  const { profile, signOut } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
@@ -47,7 +44,6 @@ export default function AppLayout() {
 
   const Sidebar = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="p-6 border-b border-slate-100">
         <Link to="/dashboard" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-md">
@@ -62,7 +58,6 @@ export default function AppLayout() {
         </Link>
       </div>
 
-      {/* New Trip CTA */}
       <div className="px-4 pt-4">
         <Link to="/trips/new"
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:from-sky-600 hover:to-indigo-700">
@@ -71,15 +66,10 @@ export default function AppLayout() {
         </Link>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map(item => <NavLink key={item.path} item={item} />)}
-        {isAdmin() && (
-          <NavLink item={{ path: '/admin', label: 'Admin Panel', icon: Shield }} />
-        )}
       </nav>
 
-      {/* Profile */}
       <div className="p-4 border-t border-slate-100">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
@@ -99,12 +89,10 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-slate-100 fixed top-0 left-0 h-full z-30">
         <Sidebar />
       </aside>
 
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
@@ -118,9 +106,7 @@ export default function AppLayout() {
         </div>
       )}
 
-      {/* Main content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
-        {/* Top bar */}
         <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
           <button onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100">
@@ -142,7 +128,6 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 p-6">
           <div className="page-enter">
             <Outlet />
