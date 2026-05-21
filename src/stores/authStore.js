@@ -28,7 +28,7 @@ export const useAuthStore = create((set, get) => ({
   fetchProfile: async (userId) => {
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id,full_name,email,role,avatar_url,bio,location,created_at')
       .eq('id', userId)
       .single()
 
@@ -50,7 +50,7 @@ export const useAuthStore = create((set, get) => ({
         full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || '',
         avatar_url: authUser.user_metadata?.avatar_url || null,
       }, { onConflict: 'id' })
-      .select()
+      .select('id,full_name,email,role,avatar_url,bio,location,created_at')
       .single()
 
     if (newProfile) set({ user: newProfile, profile: newProfile })
@@ -96,7 +96,7 @@ export const useAuthStore = create((set, get) => ({
       .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', profile.id)
-      .select()
+      .select('id,full_name,email,role,avatar_url,bio,location,created_at')
       .single()
     if (data) set({ profile: data, user: data })
     return { data, error }

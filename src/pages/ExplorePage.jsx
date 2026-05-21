@@ -37,7 +37,7 @@ export default function ExplorePage() {
   useEffect(() => {
     const fetchDests = async () => {
       setLoading(true)
-      let q = supabase.from('destinations').select('*').order('popularity_score', { ascending: false })
+      let q = supabase.from('destinations').select('id,city,country_name,continent,flag_emoji,description,cover_image_url,budget_level,safety_rating,popularity_score,best_months,visa_required').order('popularity_score', { ascending: false })
       if (continent !== 'all') q = q.eq('continent', continent)
       if (search) q = q.or(`city.ilike.%${search}%,country_name.ilike.%${search}%`)
       const { data } = await q.limit(20)
