@@ -54,6 +54,14 @@ export const useAuthStore = create((set, get) => ({
     return { data, error }
   },
 
+  signInWithFacebook: async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: `${window.location.origin}/dashboard` }
+    })
+    return { data, error }
+  },
+
   signOut: async () => {
     await supabase.auth.signOut()
     set({ user: null, profile: null })
