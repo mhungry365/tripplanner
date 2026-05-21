@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useTripsStore } from '../stores/tripsStore'
+import { supabase } from '../lib/supabase'
 import { ArrowLeft, ArrowRight, Globe, Calendar, DollarSign, Users, CheckCircle } from 'lucide-react'
 import { CURRENCIES } from '../lib/constants'
 import toast from 'react-hot-toast'
@@ -15,7 +16,7 @@ const steps = [
 
 export default function NewTripPage() {
   const navigate = useNavigate()
-  const { profile } = useAuthStore()
+  const { profile } = useAuthStore() // kept for reference; user_id resolved via getUser()
   const { createTrip } = useTripsStore()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -32,9 +33,15 @@ export default function NewTripPage() {
 
   const handleSubmit = async () => {
     setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      toast.error('You must be logged in to create a trip')
+      setLoading(false)
+      return
+    }
     const tripData = {
       ...form,
-      user_id: profile.id,
+      user_id: user.id,
       budget_total: parseFloat(form.budget_total) || 0,
       tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
     }
