@@ -8,19 +8,19 @@ export const useAuthStore = create((set, get) => ({
   initialized: false,
 
   initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      set({ user: session.user })
-      await get().fetchProfile(session.user.id)
-    }
-    set({ loading: false, initialized: true })
-
+    // Use onAuthStateChange as the sole source of truth.
+    // INITIAL_SESSION fires once immediately (with session or null), which avoids
+    // the race where getSession() returns null before detectSessionInUrl finishes
+    // processing OAuth tokens from the URL after redirect.
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         set({ user: session.user })
         await get().fetchProfile(session.user.id)
       } else {
         set({ user: null, profile: null })
+      }
+      if (!get().initialized) {
+        set({ loading: false, initialized: true })
       }
     })
   },
@@ -31,7 +31,29 @@ export const useAuthStore = create((set, get) => ({
       .select('*')
       .eq('id', userId)
       .single()
-    if (data) set({ user: data, profile: data })
+
+    if (data) {
+      set({ user: data, profile: data })
+      return
+    }
+
+    // Profile missing — trigger failed for this OAuth user. Create it now.
+    const { data: authData } = await supabase.auth.getUser()
+    const authUser = authData?.user
+    if (!authUser) return
+
+    const { data: newProfile } = await supabase
+      .from('profiles')
+      .upsert({
+        id: authUser.id,
+        email: authUser.email,
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || '',
+        avatar_url: authUser.user_metadata?.avatar_url || null,
+      }, { onConflict: 'id' })
+      .select()
+      .single()
+
+    if (newProfile) set({ user: newProfile, profile: newProfile })
   },
 
   signUp: async ({ email, password, fullName }) => {
