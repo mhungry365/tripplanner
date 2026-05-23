@@ -47,10 +47,10 @@ export default function ExplorePage() {
   useEffect(() => {
     const fetchDests = async () => {
       setLoading(true)
-      let q = supabase.from('destinations').select('id,city,country_name,continent,flag_emoji,description,cover_image_url,budget_level,safety_rating,popularity_score,best_months,visa_required').order('popularity_score', { ascending: false })
+      let q = supabase.from('destinations').select('id,city,country_name,continent,flag_emoji,description,cover_image_url,budget_level,avg_daily_budget_usd,safety_rating,popularity_score,best_months,visa_required,currency_code,currency_symbol,language').order('popularity_score', { ascending: false })
       if (continent !== 'all') q = q.eq('continent', continent)
       if (search) q = q.or(`city.ilike.%${search}%,country_name.ilike.%${search}%`)
-      const { data } = await q.limit(20)
+      const { data } = await q.limit(50)
       setDestinations(data || [])
       setLoading(false)
     }
