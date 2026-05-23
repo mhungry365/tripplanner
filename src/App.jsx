@@ -14,6 +14,7 @@ import TripDetailPage from './pages/TripDetailPage'
 import NewTripPage from './pages/NewTripPage'
 import ExplorePage from './pages/ExplorePage'
 import ProfilePage from './pages/ProfilePage'
+import SupportPage from './pages/SupportPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function PrivateRoute({ children }) {
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/trips/:id" element={<TripDetailPage />} />
         <Route path="/explore"   element={<ExplorePage />} />
         <Route path="/profile"   element={<ProfilePage />} />
+        <Route path="/support"   element={<SupportPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
