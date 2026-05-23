@@ -120,7 +120,7 @@ export default function LandingPage() {
           <span className="text-xl">🌍</span>
           <span className="font-bold font-display text-lg">TripPlanner</span>
         </div>
-        <p className="text-slate-500 text-sm">© 2025 TripPlanner. Plan Smart. Explore More.</p>
+        <p className="text-slate-500 text-sm">© {new Date().getFullYear()} TripPlanner. Plan Smart. Explore More.</p>
       </footer>
     </div>
   )
