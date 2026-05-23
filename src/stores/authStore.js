@@ -20,7 +20,11 @@ export const useAuthStore = create((set, get) => ({
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         set({ user: session.user })
-        await get().fetchProfile(session.user.id)
+        try {
+          await get().fetchProfile(session.user.id)
+        } catch {
+          // fetchProfile failed — unblock the app anyway
+        }
       } else {
         set({ user: null, profile: null })
       }

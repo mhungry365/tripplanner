@@ -12,6 +12,16 @@ const CONTINENTS = [
   { key: 'Africa',   label: 'Africa' },
 ]
 
+const CONTINENT_GRADIENT = {
+  Asia:         'linear-gradient(135deg, #f97316, #dc2626)',
+  Europe:       'linear-gradient(135deg, #3b82f6, #6d28d9)',
+  Americas:     'linear-gradient(135deg, #10b981, #0891b2)',
+  Africa:       'linear-gradient(135deg, #f59e0b, #ea580c)',
+  Oceania:      'linear-gradient(135deg, #06b6d4, #2563eb)',
+  'Middle East':'linear-gradient(135deg, #d97706, #dc2626)',
+  default:      'linear-gradient(135deg, #6366f1, #8b5cf6)',
+}
+
 function StarRating({ rating, white = false }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -94,12 +104,14 @@ export default function ExplorePage() {
           {destinations.map(d => (
             <button key={d.id} onClick={() => setSelected(d)}
               className="relative h-64 rounded-2xl overflow-hidden group cursor-pointer text-left shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              {d.cover_image_url ? (
-                <img src={d.cover_image_url} alt={d.city}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-indigo-500 to-violet-600" />
-              )}
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                style={{
+                  backgroundImage: d.cover_image_url
+                    ? `url(${d.cover_image_url})`
+                    : (CONTINENT_GRADIENT[d.continent] || CONTINENT_GRADIENT.default),
+                }}
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
               {trendingIds.has(d.id) && (
@@ -144,12 +156,14 @@ export default function ExplorePage() {
             onClick={e => e.stopPropagation()}>
             {/* Hero */}
             <div className="relative h-56 sm:h-72 flex-shrink-0">
-              {selected.cover_image_url ? (
-                <img src={selected.cover_image_url} alt={selected.city}
-                  className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-sky-400 via-indigo-500 to-violet-600" />
-              )}
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: selected.cover_image_url
+                    ? `url(${selected.cover_image_url})`
+                    : (CONTINENT_GRADIENT[selected.continent] || CONTINENT_GRADIENT.default),
+                }}
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <button onClick={() => setSelected(null)}
                 className="absolute top-4 right-4 w-9 h-9 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors">
