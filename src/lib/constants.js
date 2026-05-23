@@ -1,5 +1,5 @@
-export const APP_NAME = 'TripPlanner'
-export const APP_TAGLINE = 'Plan Smart. Explore More.'
+export const APP_NAME = 'HolidaysDairy'
+export const APP_TAGLINE = 'Your Journey. Your Story.'
 
 export const CURRENCIES = [
   { code: 'EUR', symbol: '€', name: 'Euro' },

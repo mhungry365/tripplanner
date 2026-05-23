@@ -27,7 +27,7 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center">
               <span className="text-lg">🌍</span>
             </div>
-            <span className="text-xl font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">TripPlanner</span>
+            <span className="text-xl font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">HolidaysDairy</span>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors px-4 py-2">Sign in</Link>
@@ -44,9 +44,9 @@ export default function LandingPage() {
             <Star size={12} className="fill-current" /> Trip planning, reimagined
           </div>
           <h1 className="text-6xl lg:text-7xl font-bold font-display text-slate-900 leading-tight mb-6">
-            Plan Bold.<br />
+            Your Journey.<br />
             <span className="bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
-              Wander Free.
+              Your Story.
             </span>
           </h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -107,7 +107,7 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-5xl mb-6 animate-float">🌍</div>
           <h2 className="text-4xl font-bold font-display mb-4">Ready for your next adventure?</h2>
-          <p className="text-white/70 text-lg mb-8">Join thousands of travellers planning their dream trips on TripPlanner.</p>
+          <p className="text-white/70 text-lg mb-8">Join thousands of travellers planning their dream trips on HolidaysDairy.</p>
           <Link to="/register" className="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold px-8 py-3.5 rounded-xl hover:bg-white/90 transition-all shadow-lg text-base">
             Create free account <ArrowRight size={18} />
           </Link>
@@ -118,9 +118,9 @@ export default function LandingPage() {
       <footer className="bg-slate-900 text-white py-10 px-6 text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
           <span className="text-xl">🌍</span>
-          <span className="font-bold font-display text-lg">TripPlanner</span>
+          <span className="font-bold font-display text-lg">HolidaysDairy</span>
         </div>
-        <p className="text-slate-500 text-sm">© {new Date().getFullYear()} TripPlanner. Plan Smart. Explore More.</p>
+        <p className="text-slate-500 text-sm">© {new Date().getFullYear()} HolidaysDairy. Your Journey. Your Story.</p>
       </footer>
     </div>
   )

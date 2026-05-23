@@ -53,7 +53,7 @@ export default function AppLayout() {
             <div className="text-lg font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
               {APP_NAME}
             </div>
-            <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Plan Smart. Explore More.</div>
+            <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Your Journey. Your Story.</div>
           </div>
         </Link>
       </div>
@@ -114,7 +114,7 @@ export default function AppLayout() {
           </button>
           <div className="hidden lg:block">
             <h1 className="text-lg font-bold text-slate-800 font-display">
-              {navItems.find(n => location.pathname.startsWith(n.path))?.label || 'TripPlanner'}
+              {navItems.find(n => location.pathname.startsWith(n.path))?.label || 'HolidaysDairy'}
             </h1>
           </div>
           <div className="flex items-center gap-3 ml-auto">
