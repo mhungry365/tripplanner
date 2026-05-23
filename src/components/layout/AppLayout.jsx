@@ -35,34 +35,39 @@ export default function AppLayout() {
   const unreadCount = notifications.filter(n => !n.is_read).length
 
   useEffect(() => {
-    if (!profile?.id) return
+    let channel
 
-    const fetchNotifs = async () => {
-      const { data } = await supabase
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
         .from('notifications')
-        .select('id, title, message, type, is_read, created_at')
-        .eq('user_id', profile.id)
+        .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20)
+
+      console.log('notifications:', data, 'error:', error)
       setNotifications(data || [])
+
+      // Real-time: new notifications pushed from admin broadcasts
+      channel = supabase
+        .channel(`notif-${user.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, ({ new: row }) => {
+          setNotifications(prev => [row, ...prev])
+        })
+        .subscribe()
     }
-    fetchNotifs()
 
-    // Real-time: new notifications pushed from admin broadcasts
-    const channel = supabase
-      .channel(`notif-${profile.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${profile.id}`,
-      }, ({ new: row }) => {
-        setNotifications(prev => [row, ...prev])
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [profile?.id])
+    init()
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [])
 
   // Close dropdown on outside click
   useEffect(() => {
