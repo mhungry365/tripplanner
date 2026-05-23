@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
+import { supabase } from '../../lib/supabase'
 import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus } from 'lucide-react'
 import { APP_NAME } from '../../lib/constants'
 import toast from 'react-hot-toast'
@@ -13,11 +14,77 @@ const navItems = [
   { path: '/profile',   label: 'Profile',   icon: User },
 ]
 
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
+
 export default function AppLayout() {
-  const location = useLocation()
-  const navigate = useNavigate()
+  const location  = useLocation()
+  const navigate  = useNavigate()
   const { profile, signOut } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Notifications
+  const [notifications, setNotifications] = useState([])
+  const [notifOpen, setNotifOpen]         = useState(false)
+  const notifRef = useRef(null)
+  const unreadCount = notifications.filter(n => !n.is_read).length
+
+  useEffect(() => {
+    if (!profile?.id) return
+
+    const fetchNotifs = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, title, message, type, is_read, created_at')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      setNotifications(data || [])
+    }
+    fetchNotifs()
+
+    // Real-time: new notifications pushed from admin broadcasts
+    const channel = supabase
+      .channel(`notif-${profile.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${profile.id}`,
+      }, ({ new: row }) => {
+        setNotifications(prev => [row, ...prev])
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [profile?.id])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const markRead = async (notif) => {
+    if (notif.is_read) return
+    await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id)
+    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n))
+  }
+
+  const markAllRead = async () => {
+    const ids = notifications.filter(n => !n.is_read).map(n => n.id)
+    if (!ids.length) return
+    await supabase.from('notifications').update({ is_read: true }).in('id', ids)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -117,11 +184,57 @@ export default function AppLayout() {
               {navItems.find(n => location.pathname.startsWith(n.path))?.label || 'HolidaysDairy'}
             </h1>
           </div>
+
           <div className="flex items-center gap-3 ml-auto">
-            <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            {/* Notification bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen(v => !v)}
+                className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors">
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                    <span className="font-semibold text-slate-800 text-sm">Notifications</span>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllRead}
+                        className="text-xs text-sky-600 hover:text-sky-700 font-semibold">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-10">
+                        <Bell size={24} className="text-slate-300 mx-auto mb-2" />
+                        <p className="text-slate-400 text-sm">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <button key={n.id} onClick={() => markRead(n)}
+                          className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex gap-3 ${!n.is_read ? 'bg-sky-50/60' : ''}`}>
+                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.is_read ? 'bg-sky-500' : 'bg-slate-200'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{n.title}</p>
+                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.created_at)}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link to="/trips/new" className="btn-primary text-sm py-2 hidden sm:flex items-center gap-1.5">
               <Plus size={16} /> New Trip
             </Link>

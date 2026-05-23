@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useTripsStore } from '../stores/tripsStore'
 import { supabase } from '../lib/supabase'
-import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass } from 'lucide-react'
+import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass, Megaphone } from 'lucide-react'
 import { TRIP_STATUSES } from '../lib/constants'
 import { format } from 'date-fns'
 
@@ -23,10 +23,19 @@ const INSPIRATION = [
   { emoji: '🏝️', title: 'Bali Retreat', desc: 'Find your zen among rice terraces', tag: 'Asia' },
 ]
 
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
+
 export default function DashboardPage() {
   const { profile } = useAuthStore()
   const { trips, fetchTrips } = useTripsStore()
-  const [trending, setTrending] = useState([])
+  const [trending, setTrending]           = useState([])
+  const [announcements, setAnnouncements] = useState([])
 
   useEffect(() => {
     if (profile?.id) fetchTrips(profile.id)
@@ -38,6 +47,14 @@ export default function DashboardPage() {
       .order('popularity_score', { ascending: false })
       .limit(6)
       .then(({ data }) => setTrending(data || []))
+  }, [])
+
+  useEffect(() => {
+    supabase.from('broadcast_messages')
+      .select('id, title, message, type, sent_at')
+      .order('sent_at', { ascending: false })
+      .limit(3)
+      .then(({ data }) => setAnnouncements(data || []))
   }, [])
 
   const activeTrips = trips.filter(t => ['planning','confirmed','ongoing'].includes(t.status))
@@ -95,6 +112,27 @@ export default function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Announcements */}
+      {announcements.length > 0 && (
+        <div>
+          <h2 className="section-title mb-4">Announcements</h2>
+          <div className="space-y-3">
+            {announcements.map(a => (
+              <div key={a.id} className="card flex items-start gap-4 p-4">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <Megaphone size={16} className="text-indigo-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 text-sm">{a.title}</p>
+                  <p className="text-slate-500 text-xs mt-0.5 line-clamp-2">{a.message}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">{timeAgo(a.sent_at)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Trending Destinations */}
       {trending.length > 0 && (
