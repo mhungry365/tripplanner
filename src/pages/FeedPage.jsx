@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
-import { Heart, MessageCircle, Share2, Image, Send, MapPin, X } from 'lucide-react'
+import { uploadPostMedia } from '../lib/storage'
+import { Heart, MessageCircle, Share2, Image, Send, MapPin, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 function timeAgo(dateStr) {
@@ -46,6 +47,10 @@ function Avatar({ profile, userId, size = 10 }) {
   )
 }
 
+function isVideo(url) {
+  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url)
+}
+
 function PostCard({ post, currentUserId, onLike }) {
   const name = post.profiles?.full_name || 'Traveller'
   const username = post.profiles?.username
@@ -68,9 +73,23 @@ function PostCard({ post, currentUserId, onLike }) {
       {/* Content */}
       <p className="px-4 pb-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-      {/* Image */}
+      {/* Media */}
       {post.image_urls?.length > 0 && (
-        <img src={post.image_urls[0]} alt="" className="w-full aspect-video object-cover" />
+        isVideo(post.image_urls[0])
+          ? (
+            <video
+              src={post.image_urls[0]}
+              controls
+              className="w-full max-h-96 bg-black"
+              preload="metadata"
+            />
+          ) : (
+            <img
+              src={post.image_urls[0]}
+              alt=""
+              className="w-full aspect-video object-cover"
+            />
+          )
       )}
 
       {/* Actions */}
@@ -88,10 +107,7 @@ function PostCard({ post, currentUserId, onLike }) {
           <span>{post.comment_count ?? 0}</span>
         </button>
         <button
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.origin + '/feed')
-            toast.success('Link copied!')
-          }}
+          onClick={() => { navigator.clipboard.writeText(window.location.origin + '/feed'); toast.success('Link copied!') }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 transition-all ml-auto"
         >
           <Share2 size={16} />
@@ -103,14 +119,18 @@ function PostCard({ post, currentUserId, onLike }) {
 
 export default function FeedPage() {
   const { profile } = useAuthStore()
-  const [posts, setPosts]             = useState([])
-  const [loading, setLoading]         = useState(true)
-  const [postText, setPostText]       = useState('')
-  const [location, setLocation]       = useState('')
+  const [posts, setPosts]               = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [postText, setPostText]         = useState('')
+  const [location, setLocation]         = useState('')
   const [showLocation, setShowLocation] = useState(false)
-  const [posting, setPosting]         = useState(false)
+  const [mediaFile, setMediaFile]       = useState(null)
+  const [mediaPreview, setMediaPreview] = useState(null)
+  const [posting, setPosting]           = useState(false)
   const [currentUserId, setCurrentUserId] = useState(null)
-  const textareaRef = useRef(null)
+
+  const textareaRef  = useRef(null)
+  const mediaInputRef = useRef(null)
 
   const autoResize = (el) => {
     el.style.height = 'auto'
@@ -151,11 +171,7 @@ export default function FeedPage() {
 
       channel = supabase
         .channel('feed-realtime')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'posts',
-        }, async ({ new: row }) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async ({ new: row }) => {
           if (row.visibility !== 'public') return
           const { data: prof } = await supabase
             .from('profiles')
@@ -173,12 +189,40 @@ export default function FeedPage() {
     return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 50 * 1024 * 1024) { toast.error('File must be under 50MB'); return }
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview)
+    setMediaFile(file)
+    setMediaPreview(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  const removeMedia = () => {
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview)
+    setMediaFile(null)
+    setMediaPreview(null)
+  }
+
   const handlePost = async () => {
     if (!postText.trim() || posting) return
     setPosting(true)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast.error('You must be logged in'); setPosting(false); return }
+
+    let imageUrls = []
+    if (mediaFile) {
+      try {
+        const url = await uploadPostMedia(mediaFile, user.id)
+        imageUrls = [url]
+      } catch (err) {
+        toast.error('Media upload failed: ' + err.message)
+        setPosting(false)
+        return
+      }
+    }
 
     const { data: newPost, error } = await supabase
       .from('posts')
@@ -187,6 +231,7 @@ export default function FeedPage() {
         content:       postText.trim(),
         visibility:    'public',
         location_name: location.trim() || null,
+        image_urls:    imageUrls,
       })
       .select('*, profiles(id, full_name, avatar_url, username)')
       .single()
@@ -199,9 +244,8 @@ export default function FeedPage() {
       setPostText('')
       setLocation('')
       setShowLocation(false)
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-      }
+      removeMedia()
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
     }
     setPosting(false)
   }
@@ -210,7 +254,6 @@ export default function FeedPage() {
     if (!currentUserId) { toast.error('Sign in to like posts'); return }
     const wasLiked = post._liked
 
-    // Optimistic update
     setPosts(prev => prev.map(p =>
       p.id === post.id
         ? { ...p, _liked: !wasLiked, like_count: Math.max(0, (p.like_count ?? 0) + (wasLiked ? -1 : 1)) }
@@ -218,32 +261,31 @@ export default function FeedPage() {
     ))
 
     if (wasLiked) {
-      const { error } = await supabase
-        .from('post_likes')
-        .delete()
-        .eq('post_id', post.id)
-        .eq('user_id', currentUserId)
-      if (error) {
-        // Revert
-        setPosts(prev => prev.map(p =>
-          p.id === post.id ? { ...p, _liked: true, like_count: (p.like_count ?? 0) + 1 } : p
-        ))
-      }
+      const { error } = await supabase.from('post_likes').delete()
+        .eq('post_id', post.id).eq('user_id', currentUserId)
+      if (error) setPosts(prev => prev.map(p =>
+        p.id === post.id ? { ...p, _liked: true, like_count: (p.like_count ?? 0) + 1 } : p
+      ))
     } else {
-      const { error } = await supabase
-        .from('post_likes')
+      const { error } = await supabase.from('post_likes')
         .insert({ post_id: post.id, user_id: currentUserId })
-      if (error) {
-        // Revert
-        setPosts(prev => prev.map(p =>
-          p.id === post.id ? { ...p, _liked: false, like_count: Math.max(0, (p.like_count ?? 0) - 1) } : p
-        ))
-      }
+      if (error) setPosts(prev => prev.map(p =>
+        p.id === post.id ? { ...p, _liked: false, like_count: Math.max(0, (p.like_count ?? 0) - 1) } : p
+      ))
     }
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
+      {/* Hidden media input */}
+      <input
+        ref={mediaInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       {/* Post creation */}
       <div className="card p-4">
         <div className="flex items-start gap-3">
@@ -260,6 +302,7 @@ export default function FeedPage() {
               style={{ minHeight: '48px' }}
             />
 
+            {/* Location input */}
             {showLocation && (
               <div className="flex items-center gap-2 mt-2 mb-1">
                 <MapPin size={13} className="text-sky-500 flex-shrink-0" />
@@ -277,13 +320,37 @@ export default function FeedPage() {
               </div>
             )}
 
+            {/* Media preview */}
+            {mediaPreview && (
+              <div className="relative mt-3 rounded-xl overflow-hidden border border-slate-200">
+                {mediaFile?.type.startsWith('video/')
+                  ? <video src={mediaPreview} controls className="w-full max-h-48 bg-black" />
+                  : <img src={mediaPreview} alt="Preview" className="w-full max-h-48 object-cover" />
+                }
+                <button
+                  onClick={removeMedia}
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Upload progress indicator */}
+            {posting && mediaFile && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
+                <Loader2 size={12} className="animate-spin text-sky-500" />
+                Uploading media...
+              </div>
+            )}
+
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
               <div className="flex gap-3">
                 <button
-                  onClick={() => toast('Photo upload coming soon!')}
-                  className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-sky-500 font-medium transition-colors"
+                  onClick={() => mediaInputRef.current?.click()}
+                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${mediaFile ? 'text-sky-500' : 'text-slate-500 hover:text-sky-500'}`}
                 >
-                  <Image size={15} /> Photo
+                  <Image size={15} /> Photo/Video
                 </button>
                 <button
                   onClick={() => setShowLocation(v => !v)}
@@ -297,7 +364,8 @@ export default function FeedPage() {
                 disabled={!postText.trim() || posting}
                 className="flex items-center gap-1.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:from-sky-600 hover:to-indigo-700 transition-all"
               >
-                <Send size={12} /> {posting ? 'Posting...' : 'Post'}
+                {posting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                {posting ? 'Posting...' : 'Post'}
               </button>
             </div>
           </div>

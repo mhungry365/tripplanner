@@ -156,8 +156,15 @@ export default function AppLayout() {
 
       <div className="p-4 border-t border-slate-100">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {profile?.full_name?.[0]?.toUpperCase() || 'W'}
+          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+              : (
+                <div className="w-full h-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
+                  {profile?.full_name?.[0]?.toUpperCase() || 'W'}
+                </div>
+              )
+            }
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-800 truncate">{profile?.full_name}</p>

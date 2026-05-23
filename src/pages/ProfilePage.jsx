@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useTripsStore } from '../stores/tripsStore'
-import { Mail, Camera, Save, Globe, Map, Settings, Edit3 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { uploadAvatar, uploadCover } from '../lib/storage'
+import { Mail, Camera, Save, Globe, Map, Settings, Edit3, ImagePlus, Loader2 } from 'lucide-react'
 import { CURRENCIES, TRIP_STATUSES } from '../lib/constants'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -10,16 +12,22 @@ import toast from 'react-hot-toast'
 export default function ProfilePage() {
   const { profile, updateProfile } = useAuthStore()
   const { trips, fetchTrips } = useTripsStore()
-  const [activeTab, setActiveTab] = useState('trips')
-  const [editing, setEditing] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab]     = useState('trips')
+  const [editing, setEditing]         = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadingCover, setUploadingCover]   = useState(false)
+
+  const avatarInputRef = useRef(null)
+  const coverInputRef  = useRef(null)
+
   const [form, setForm] = useState({
-    full_name: profile?.full_name || '',
-    username: profile?.username || '',
-    bio: profile?.bio || '',
-    nationality: profile?.nationality || '',
-    home_country: profile?.home_country || '',
-    home_city: profile?.home_city || '',
+    full_name:          profile?.full_name || '',
+    username:           profile?.username || '',
+    bio:                profile?.bio || '',
+    nationality:        profile?.nationality || '',
+    home_country:       profile?.home_country || '',
+    home_city:          profile?.home_city || '',
     preferred_currency: profile?.preferred_currency || 'EUR',
   })
 
@@ -37,6 +45,44 @@ export default function ProfilePage() {
     setLoading(false)
   }
 
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return }
+
+    setUploadingAvatar(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const publicUrl = await uploadAvatar(file, user.id)
+      await updateProfile({ avatar_url: publicUrl })
+      toast.success('Avatar updated!')
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message)
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleCoverChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB'); return }
+
+    setUploadingCover(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const publicUrl = await uploadCover(file, user.id)
+      await updateProfile({ cover_image_url: publicUrl })
+      toast.success('Cover photo updated!')
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message)
+    } finally {
+      setUploadingCover(false)
+      e.target.value = ''
+    }
+  }
+
   const completedTrips = trips.filter(t => t.status === 'completed')
 
   const TABS = [
@@ -46,23 +92,58 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-3xl space-y-6 animate-fade-in">
+      {/* Hidden file inputs */}
+      <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+      <input ref={coverInputRef}  type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+
       {/* Profile header card */}
       <div className="card overflow-hidden p-0">
-        {/* Cover gradient */}
-        <div className="h-32 bg-gradient-to-br from-sky-400 via-indigo-500 to-violet-600 relative">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_white_0%,_transparent_60%)]" />
+        {/* Cover photo */}
+        <div className="h-32 relative overflow-hidden group">
+          {profile?.cover_image_url ? (
+            <img src={profile.cover_image_url} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="h-full bg-gradient-to-br from-sky-400 via-indigo-500 to-violet-600">
+              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_white_0%,_transparent_60%)]" />
+            </div>
+          )}
+          <button
+            onClick={() => coverInputRef.current?.click()}
+            disabled={uploadingCover}
+            className="absolute inset-0 w-full flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-200 cursor-pointer"
+          >
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 bg-black/50 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">
+              {uploadingCover
+                ? <><Loader2 size={13} className="animate-spin" /> Uploading...</>
+                : <><ImagePlus size={13} /> Change cover</>
+              }
+            </span>
+          </button>
         </div>
 
         <div className="px-6 pb-6">
           <div className="flex items-end justify-between -mt-10 mb-4">
+            {/* Avatar */}
             <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-lg">
-                {profile?.full_name?.[0]?.toUpperCase() || 'W'}
+              <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold">
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+                  : <span>{profile?.full_name?.[0]?.toUpperCase() || 'W'}</span>
+                }
               </div>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center text-slate-600 hover:bg-slate-50 border border-slate-200">
-                <Camera size={13} />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center text-slate-600 hover:bg-slate-50 border border-slate-200 transition-colors"
+                title="Change avatar"
+              >
+                {uploadingAvatar
+                  ? <Loader2 size={12} className="animate-spin text-sky-500" />
+                  : <Camera size={13} />
+                }
               </button>
             </div>
+
             <button onClick={() => setEditing(!editing)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">
               <Edit3 size={14} /> {editing ? 'Cancel' : 'Edit Profile'}
@@ -83,13 +164,12 @@ export default function ProfilePage() {
             </span>
           </div>
 
-          {/* Social stats */}
           <div className="flex gap-6">
             {[
-              { label: 'Trips',      value: trips.length },
-              { label: 'Countries',  value: profile?.total_countries || 0 },
-              { label: 'Followers',  value: 0 },
-              { label: 'Following',  value: 0 },
+              { label: 'Trips',     value: trips.length },
+              { label: 'Countries', value: profile?.total_countries || 0 },
+              { label: 'Followers', value: 0 },
+              { label: 'Following', value: 0 },
             ].map(s => (
               <div key={s.label} className="text-center">
                 <div className="font-bold text-slate-900 text-xl font-display">{s.value}</div>
@@ -143,7 +223,7 @@ export default function ProfilePage() {
           </div>
           <button onClick={handleSave} disabled={loading} className="btn-primary flex items-center gap-2">
             {loading
-              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ? <Loader2 size={16} className="animate-spin" />
               : <><Save size={16} /> Save changes</>
             }
           </button>
@@ -202,10 +282,10 @@ export default function ProfilePage() {
       {activeTab === 'stats' && (
         <div className="grid grid-cols-2 gap-4">
           {[
-            { label: 'Total Trips',      value: trips.length,                                       emoji: '✈️' },
-            { label: 'Completed',        value: completedTrips.length,                               emoji: '✅' },
-            { label: 'Countries Visited',value: profile?.total_countries || 0,                      emoji: '🌍' },
-            { label: 'Km Travelled',     value: profile?.total_km ? Number(profile.total_km).toLocaleString() : 0, emoji: '📏' },
+            { label: 'Total Trips',       value: trips.length,              emoji: '✈️' },
+            { label: 'Completed',         value: completedTrips.length,     emoji: '✅' },
+            { label: 'Countries Visited', value: profile?.total_countries || 0, emoji: '🌍' },
+            { label: 'Km Travelled',      value: profile?.total_km ? Number(profile.total_km).toLocaleString() : 0, emoji: '📏' },
           ].map(s => (
             <div key={s.label} className="card text-center p-6">
               <div className="text-3xl mb-2">{s.emoji}</div>

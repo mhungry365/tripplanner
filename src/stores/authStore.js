@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
-const PROFILE_COLS = 'id,full_name,email,role,avatar_url,bio,location,created_at'
+const PROFILE_COLS = 'id,full_name,email,role,avatar_url,cover_image_url,bio,username,home_city,home_country,nationality,preferred_currency,total_countries,total_km,created_at'
 
 export const useAuthStore = create((set, get) => ({
   user: null,
