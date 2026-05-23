@@ -10,27 +10,28 @@ export const useAuthStore = create((set, get) => ({
   initialized: false,
 
   initialize: async () => {
-    // Hard timeout — app never stays stuck on the loading screen.
-    const failsafe = setTimeout(() => {
-      if (!get().initialized) {
-        set({ loading: false, initialized: true })
-      }
-    }, 5000)
-
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // getSession() first — waits for Supabase to fully parse the OAuth URL hash
+    // before we make any routing decisions. This fixes the Safari loop where
+    // onAuthStateChange fires INITIAL_SESSION(null) before the hash is processed.
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         set({ user: session.user })
-        try {
-          await get().fetchProfile(session.user.id)
-        } catch {
-          // fetchProfile failed — unblock the app anyway
-        }
-      } else {
-        set({ user: null, profile: null })
+        try { await get().fetchProfile(session.user.id) } catch { /* ignore */ }
       }
-      if (!get().initialized) {
-        clearTimeout(failsafe)
-        set({ loading: false, initialized: true })
+    } catch { /* network error — still unblock */ }
+
+    set({ loading: false, initialized: true })
+
+    // onAuthStateChange handles live updates only: sign-in, sign-out, token refresh.
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        set({ user: null, profile: null })
+        return
+      }
+      if (session?.user && session.user.id !== get().user?.id) {
+        set({ user: session.user })
+        try { await get().fetchProfile(session.user.id) } catch { /* ignore */ }
       }
     })
   },
@@ -84,7 +85,10 @@ export const useAuthStore = create((set, get) => ({
   signInWithGoogle: async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` }
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+        queryParams: { access_type: 'offline', prompt: 'select_account' },
+      }
     })
     return { data, error }
   },
