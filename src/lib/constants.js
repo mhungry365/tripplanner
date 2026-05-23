@@ -1,5 +1,5 @@
-export const APP_NAME = 'HolidaysDairy'
-export const APP_TAGLINE = 'Your Journey. Your Story.'
+export const APP_NAME = 'Holidater'
+export const APP_TAGLINE = 'Travel. Experience. Remember.'
 
 export const CURRENCIES = [
   { code: 'EUR', symbol: '€', name: 'Euro' },

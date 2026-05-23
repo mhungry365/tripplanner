@@ -38,7 +38,7 @@ function LoadingScreen() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 shadow-lg mb-4 animate-pulse-soft">
           <span className="text-3xl">🌍</span>
         </div>
-        <p className="text-slate-500 font-medium font-body">Loading HolidaysDairy...</p>
+        <p className="text-slate-500 font-medium font-body">Loading Holidater...</p>
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ export default function VerifyEmailPage() {
           <Mail size={36} className="text-sky-500" />
         </div>
         <h1 className="text-2xl font-bold font-display text-slate-900 mb-3">Verify your email</h1>
-        <p className="text-slate-500 mb-6">Please check your inbox and click the verification link to activate your HolidaysDairy account.</p>
+        <p className="text-slate-500 mb-6">Please check your inbox and click the verification link to activate your Holidater account.</p>
         <Link to="/login" className="btn-primary inline-flex">Go to Sign In</Link>
       </div>
     </div>
