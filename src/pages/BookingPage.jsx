@@ -6,20 +6,42 @@ import toast from 'react-hot-toast'
 // ─── Booking partner configs ─────────────────────────────────────────────────
 
 const FLIGHT_PARTNERS = [
-  { name: 'Google Flights', bg: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200',   url: (f,t,d) => `https://www.google.com/travel/flights?q=Flights+from+${encodeURIComponent(f)}+to+${encodeURIComponent(t)}+on+${d}` },
-  { name: 'Skyscanner',     bg: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-cyan-200',   url: (f,t,d) => `https://www.skyscanner.net/transport/flights/${encodeURIComponent(f)}/${encodeURIComponent(t)}/${d?.replace(/-/g,'')}/` },
-  { name: 'Kayak',          bg: 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200', url: (f,t,d) => `https://www.kayak.com/flights/${encodeURIComponent(f)}-${encodeURIComponent(t)}/${d}` },
-  { name: 'Momondo',        bg: 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-200', url: (f,t,d) => `https://www.momondo.com/flight-search/${encodeURIComponent(f)}-${encodeURIComponent(t)}/${d}` },
-  { name: 'Ryanair',        bg: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border-yellow-200', url: (f,t,d) => `https://www.ryanair.com/gb/en/trip/flights/select?ADT=1&TEEN=0&CHD=0&INF=0&DateIn=&DateOut=${d}&Destination=${encodeURIComponent(t)}&Origin=${encodeURIComponent(f)}` },
-  { name: 'Aer Lingus',     bg: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200', url: (f,t,d) => `https://www.aerlingus.com/flight-information/flight-search/?flightSearchWidgetOW=true&departureAirportName=${encodeURIComponent(f)}&arrivalAirportName=${encodeURIComponent(t)}&departureDate=${d}` },
+  { name: 'Google Flights', bg: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200',
+    home: 'https://www.google.com/travel/flights',
+    url:  (f,t,d) => `https://www.google.com/travel/flights?q=Flights+from+${encodeURIComponent(f)}+to+${encodeURIComponent(t)}+on+${d}` },
+  { name: 'Skyscanner',     bg: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-cyan-200',
+    home: 'https://www.skyscanner.net',
+    url:  (f,t,d) => `https://www.skyscanner.net/transport/flights/${encodeURIComponent(f)}/${encodeURIComponent(t)}/${d?.replace(/-/g,'')}/` },
+  { name: 'Kayak',          bg: 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200',
+    home: 'https://www.kayak.com',
+    url:  (f,t,d) => `https://www.kayak.com/flights/${encodeURIComponent(f)}-${encodeURIComponent(t)}/${d}` },
+  { name: 'Momondo',        bg: 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-200',
+    home: 'https://www.momondo.com',
+    url:  (f,t,d) => `https://www.momondo.com/flight-search/${encodeURIComponent(f)}-${encodeURIComponent(t)}/${d}` },
+  { name: 'Ryanair',        bg: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border-yellow-200',
+    home: 'https://www.ryanair.com',
+    url:  (f,t,d) => `https://www.ryanair.com/gb/en/trip/flights/select?ADT=1&TEEN=0&CHD=0&INF=0&DateIn=&DateOut=${d}&Destination=${encodeURIComponent(t)}&Origin=${encodeURIComponent(f)}` },
+  { name: 'Aer Lingus',     bg: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200',
+    home: 'https://www.aerlingus.com',
+    url:  (f,t,d) => `https://www.aerlingus.com/flight-information/flight-search/?flightSearchWidgetOW=true&departureAirportName=${encodeURIComponent(f)}&arrivalAirportName=${encodeURIComponent(t)}&departureDate=${d}` },
 ]
 
 const HOTEL_PARTNERS = [
-  { name: 'Booking.com',  bg: 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200',    url: (dest,ci,co,g) => `https://www.booking.com/search.html?ss=${encodeURIComponent(dest)}&checkin=${ci}&checkout=${co}&group_adults=${g}&no_rooms=1` },
-  { name: 'Airbnb',       bg: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200',    url: (dest,ci,co,g) => `https://www.airbnb.com/s/${encodeURIComponent(dest)}/homes?checkin=${ci}&checkout=${co}&adults=${g}` },
-  { name: 'Hotels.com',   bg: 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200',        url: (dest,ci,co,g) => `https://www.hotels.com/search.do?q-destination=${encodeURIComponent(dest)}&q-check-in=${ci}&q-check-out=${co}&q-rooms=1&q-room-0-adults=${g}` },
-  { name: 'Expedia',      bg: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200',url: (dest,ci,co,g) => `https://www.expedia.com/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${ci}&endDate=${co}&adults=${g}` },
-  { name: 'Hostelworld',  bg: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200', url: (dest,ci,co) => `https://www.hostelworld.com/search?search_keywords=${encodeURIComponent(dest)}&date_from=${ci}&date_to=${co}` },
+  { name: 'Booking.com',  bg: 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200',
+    home: 'https://www.booking.com',
+    url:  (dest,ci,co,g) => `https://www.booking.com/search.html?ss=${encodeURIComponent(dest)}&checkin=${ci}&checkout=${co}&group_adults=${g}&no_rooms=1` },
+  { name: 'Airbnb',       bg: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200',
+    home: 'https://www.airbnb.com',
+    url:  (dest,ci,co,g) => `https://www.airbnb.com/s/${encodeURIComponent(dest)}/homes?checkin=${ci}&checkout=${co}&adults=${g}` },
+  { name: 'Hotels.com',   bg: 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200',
+    home: 'https://www.hotels.com',
+    url:  (dest,ci,co,g) => `https://www.hotels.com/search.do?q-destination=${encodeURIComponent(dest)}&q-check-in=${ci}&q-check-out=${co}&q-rooms=1&q-room-0-adults=${g}` },
+  { name: 'Expedia',      bg: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200',
+    home: 'https://www.expedia.com',
+    url:  (dest,ci,co,g) => `https://www.expedia.com/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${ci}&endDate=${co}&adults=${g}` },
+  { name: 'Hostelworld',  bg: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200',
+    home: 'https://www.hostelworld.com',
+    url:  (dest,ci,co) => `https://www.hostelworld.com/search?search_keywords=${encodeURIComponent(dest)}&date_from=${ci}&date_to=${co}` },
 ]
 
 const SUGGESTIONS = [
@@ -190,21 +212,32 @@ export default function BookingPage() {
   const [guests,      setGuests]      = useState(2)
   const [rooms,       setRooms]       = useState(1)
 
-  const openFlight = (partner) => {
+  const searchFlights = () => {
     if (!from.trim() || !to.trim()) { toast.error('Enter origin and destination'); return }
     if (!depDate)                    { toast.error('Select a departure date'); return }
-    window.open(partner.url(from, to, depDate), '_blank', 'noopener')
+    window.open(FLIGHT_PARTNERS[0].url(from, to, depDate), '_blank', 'noopener')
   }
 
-  const openHotel = (partner) => {
+  const openPartnerFlight = (partner) => {
+    const url = (from.trim() && to.trim())
+      ? partner.url(from, to, depDate || '')
+      : partner.home
+    window.open(url, '_blank', 'noopener')
+  }
+
+  const searchHotels = () => {
     if (!hotelDest.trim()) { toast.error('Enter a destination'); return }
     if (!checkin)          { toast.error('Select check-in date'); return }
     if (!checkout)         { toast.error('Select check-out date'); return }
-    window.open(partner.url(hotelDest, checkin, checkout, guests), '_blank', 'noopener')
+    window.open(HOTEL_PARTNERS[0].url(hotelDest, checkin, checkout, guests), '_blank', 'noopener')
   }
 
-  const searchFlights = () => openFlight(FLIGHT_PARTNERS[0])
-  const searchHotels  = () => openHotel(HOTEL_PARTNERS[0])
+  const openPartnerHotel = (partner) => {
+    const url = hotelDest.trim()
+      ? partner.url(hotelDest, checkin || '', checkout || '', guests)
+      : partner.home
+    window.open(url, '_blank', 'noopener')
+  }
 
   return (
     <div className="max-w-3xl space-y-8 animate-fade-in">
@@ -277,7 +310,7 @@ export default function BookingPage() {
           <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Also search on</p>
           <div className="flex flex-wrap gap-2">
             {FLIGHT_PARTNERS.slice(1).map(p => (
-              <button key={p.name} onClick={() => openFlight(p)}
+              <button key={p.name} onClick={() => openPartnerFlight(p)}
                 className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${p.bg}`}>
                 {p.name}
               </button>
@@ -338,7 +371,7 @@ export default function BookingPage() {
           <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Also search on</p>
           <div className="flex flex-wrap gap-2">
             {HOTEL_PARTNERS.slice(1).map(p => (
-              <button key={p.name} onClick={() => openHotel(p)}
+              <button key={p.name} onClick={() => openPartnerHotel(p)}
                 className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${p.bg}`}>
                 {p.name}
               </button>
