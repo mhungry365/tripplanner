@@ -326,11 +326,6 @@ export default function AppLayout() {
               )}
             </div>
 
-            {/* New Trip button */}
-            <Link to="/trips/new" className="btn-primary text-sm py-2 px-3 hidden sm:flex items-center gap-1.5 min-h-[40px]">
-              <Plus size={15} /> New Trip
-            </Link>
-
             {/* Avatar dropdown */}
             <div className="relative" ref={avatarRef}>
               <button onClick={() => setAvatarOpen(v => !v)}
