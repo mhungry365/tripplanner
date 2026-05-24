@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Tag, ExternalLink, CheckCircle, Loader2, Users, ShieldCheck, Star, Award } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -92,10 +92,19 @@ const EMPTY_FORM = {
 }
 
 export default function DealsPage() {
-  const [category,   setCategory]   = useState('All')
-  const [form,       setForm]       = useState(EMPTY_FORM)
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted,  setSubmitted]  = useState(false)
+  const [category,      setCategory]      = useState('All')
+  const [form,          setForm]          = useState(EMPTY_FORM)
+  const [submitting,    setSubmitting]    = useState(false)
+  const [submitted,     setSubmitted]     = useState(false)
+  const [partnerDeals,  setPartnerDeals]  = useState([])
+
+  useEffect(() => {
+    supabase.from('partner_deals')
+      .select('*')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setPartnerDeals(data || []))
+  }, [])
 
   const filtered = category === 'All' ? DEALS : DEALS.filter(d => d.category === category)
   const set = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }))
@@ -153,6 +162,60 @@ export default function DealsPage() {
           )
         })}
       </div>
+
+      {/* Featured Partner Deals (from Supabase) */}
+      {partnerDeals.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base sm:text-lg font-bold text-slate-900 font-display">Featured Partner Deals</span>
+            <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{partnerDeals.length} live</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {partnerDeals.map(deal => (
+              <div key={deal.id} className="relative rounded-2xl border border-emerald-100 overflow-hidden bg-emerald-50 shadow-sm hover:shadow-md transition-all">
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide z-10">
+                  Partner
+                </div>
+                <div className="p-4 sm:p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-xl flex-shrink-0">🤝</div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{deal.business_name}</p>
+                      {deal.discount_percentage && (
+                        <p className="text-sm font-bold text-slate-800">{deal.discount_percentage}% off</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-600 mb-4 leading-relaxed line-clamp-3">{deal.deal_description}</p>
+                  <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                    {deal.discount_percentage && (
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Save {deal.discount_percentage}%</span>
+                    )}
+                    {deal.valid_until && (
+                      <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                        Until {new Date(deal.valid_until).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </div>
+                  {deal.website ? (
+                    <a href={deal.website} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors min-h-[44px]">
+                      Book Now <ExternalLink size={13} />
+                    </a>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-500 min-h-[44px]">
+                      Contact for details
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-200 pt-4">
+            <p className="text-sm font-bold text-slate-700 font-display">Curated Deals</p>
+          </div>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div>

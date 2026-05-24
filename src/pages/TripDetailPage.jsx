@@ -4,7 +4,7 @@ import { useTripsStore } from '../stores/tripsStore'
 import { supabase } from '../lib/supabase'
 import {
   ArrowLeft, Plus, X, MapPin, Clock, ExternalLink,
-  Share2, DollarSign, ChevronRight, Plane
+  Share2, DollarSign, ChevronRight, Plane, Pencil, Trash2, Check
 } from 'lucide-react'
 import { TRIP_STATUSES, CURRENCIES } from '../lib/constants'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
@@ -121,6 +121,14 @@ export default function TripDetailPage() {
   const [hotelForm, setHotelForm] = useState({ name: '', address: '', city: '', phone: '', website: '', check_in_date: '', check_out_date: '', cost_per_night: '', cost_currency: 'EUR', booking_ref: '', notes: '' })
   const [legForm, setLegForm] = useState({ type: 'flight', from_city: '', to_city: '', departure_date: '', departure_time: '', arrival_time: '', cost: '', cost_currency: 'EUR', operator: '', booking_ref: '', notes: '' })
   const [expForm, setExpForm] = useState({ category: 'food', title: '', amount: '', currency: 'EUR', date: '', notes: '' })
+
+  // Edit expense state
+  const [editExpModal,   setEditExpModal]   = useState(false)
+  const [editExpId,      setEditExpId]      = useState(null)
+  const [editExpForm,    setEditExpForm]    = useState({ category: 'food', title: '', amount: '', currency: 'EUR', date: '', notes: '' })
+  // Editable budget
+  const [editingBudget,  setEditingBudget]  = useState(false)
+  const [newBudget,      setNewBudget]      = useState('')
 
   const trip = currentTrip
 
@@ -276,6 +284,59 @@ export default function TripDetailPage() {
       toast.success('Expense logged!')
     }
     setSaving(false)
+  }
+
+  const openEditExpense = (t) => {
+    setEditExpId(t.id)
+    setEditExpForm({
+      category: t.category || 'food',
+      title:    t.title || '',
+      amount:   t.amount_local?.toString() || '',
+      currency: t.currency_local || 'EUR',
+      date:     t.transaction_date || '',
+      notes:    t.notes || '',
+    })
+    setEditExpModal(true)
+  }
+
+  const handleUpdateExpense = async () => {
+    if (!editExpForm.title.trim() || !editExpForm.amount) { toast.error('Title and amount required'); return }
+    setSaving(true)
+    const patch = {
+      category:         editExpForm.category,
+      title:            editExpForm.title.trim(),
+      amount_local:     parseFloat(editExpForm.amount),
+      currency_local:   editExpForm.currency,
+      amount_eur:       parseFloat(editExpForm.amount),
+      transaction_date: editExpForm.date || null,
+      notes:            editExpForm.notes || null,
+    }
+    const { error } = await supabase.from('budget_transactions').update(patch).eq('id', editExpId)
+    if (error) { toast.error(error.message) }
+    else {
+      setTransactions(prev => prev.map(t => t.id === editExpId ? { ...t, ...patch } : t))
+      setEditExpModal(false)
+      toast.success('Expense updated!')
+    }
+    setSaving(false)
+  }
+
+  const handleDeleteExpense = async (txId) => {
+    if (!window.confirm('Delete this expense?')) return
+    const { error } = await supabase.from('budget_transactions').delete().eq('id', txId)
+    if (error) { toast.error(error.message); return }
+    setTransactions(prev => prev.filter(t => t.id !== txId))
+    toast.success('Expense deleted')
+  }
+
+  const handleUpdateBudget = async () => {
+    const val = parseFloat(newBudget)
+    if (isNaN(val) || val < 0) { toast.error('Enter a valid budget amount'); return }
+    const { error } = await supabase.from('trips').update({ budget_total: val }).eq('id', trip.id)
+    if (error) { toast.error(error.message); return }
+    await fetchTrip(id)
+    setEditingBudget(false)
+    toast.success('Budget updated!')
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -531,7 +592,28 @@ export default function TripDetailPage() {
           </div>
           <div className="text-right">
             <div className="text-sm text-slate-500">Budget</div>
-            <div className="text-xl font-bold text-slate-700">{trip.budget_currency} {(trip.budget_total || 0).toLocaleString()}</div>
+            {editingBudget ? (
+              <div className="flex items-center gap-1 justify-end">
+                <input
+                  autoFocus
+                  type="number" min="0"
+                  className="w-28 px-2 py-1 text-sm border border-sky-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white text-slate-800 font-bold"
+                  value={newBudget}
+                  onChange={e => setNewBudget(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleUpdateBudget(); if (e.key === 'Escape') setEditingBudget(false) }}
+                />
+                <button onClick={handleUpdateBudget} className="p-1 rounded-lg bg-sky-500 text-white hover:bg-sky-600"><Check size={14} /></button>
+                <button onClick={() => setEditingBudget(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"><X size={14} /></button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setNewBudget((trip.budget_total || 0).toString()); setEditingBudget(true) }}
+                className="flex items-center gap-1.5 text-xl font-bold text-slate-700 hover:text-sky-600 transition-colors group"
+                title="Click to edit budget">
+                {trip.budget_currency} {(trip.budget_total || 0).toLocaleString()}
+                <Pencil size={13} className="opacity-0 group-hover:opacity-100 transition-opacity text-sky-500" />
+              </button>
+            )}
           </div>
         </div>
         <div className="bg-white/60 rounded-full h-3 overflow-hidden mb-1">
@@ -585,12 +667,22 @@ export default function TripDetailPage() {
         <div className="space-y-2">
           {transactions.map(t => (
             <div key={t.id} className="card flex items-center gap-3 py-3">
-              <span className="text-xl">{CAT[t.category]?.emoji || '💼'}</span>
+              <span className="text-xl flex-shrink-0">{CAT[t.category]?.emoji || '💼'}</span>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-slate-800 text-sm truncate">{t.title}</div>
                 <div className="text-xs text-slate-400">{CAT[t.category]?.label}{t.transaction_date && ` · ${format(parseISO(t.transaction_date), 'MMM d')}`}</div>
               </div>
               <span className="font-bold text-slate-800 text-sm flex-shrink-0">{t.currency_local} {t.amount_local?.toLocaleString()}</span>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button onClick={() => openEditExpense(t)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit">
+                  <Pencil size={13} />
+                </button>
+                <button onClick={() => handleDeleteExpense(t.id)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete">
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -853,6 +945,43 @@ export default function TripDetailPage() {
           <div className="flex gap-3 pt-2">
             <button onClick={() => setExpenseModal(false)} className="btn-secondary flex-1">Cancel</button>
             <button onClick={handleAddExpense} disabled={saving} className="btn-primary flex-1">{saving ? 'Adding...' : 'Log Expense'}</button>
+          </div>
+        </Modal>
+      )}
+
+      {editExpModal && (
+        <Modal title="Edit Expense" onClose={() => setEditExpModal(false)}>
+          <FormRow label="Category">
+            <select className="input" value={editExpForm.category} onChange={e => setEditExpForm(f => ({...f, category: e.target.value}))}>
+              {['flight','accommodation','food','transport','activities','shopping','visa','insurance','communication','other'].map(c => (
+                <option key={c} value={c}>{CAT[c]?.emoji || '💼'} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+          </FormRow>
+          <FormRow label="Description *">
+            <input className="input" value={editExpForm.title} onChange={e => setEditExpForm(f => ({...f, title: e.target.value}))} />
+          </FormRow>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <FormRow label="Amount *">
+                <input type="number" className="input" value={editExpForm.amount} onChange={e => setEditExpForm(f => ({...f, amount: e.target.value}))} />
+              </FormRow>
+            </div>
+            <FormRow label="Currency">
+              <select className="input" value={editExpForm.currency} onChange={e => setEditExpForm(f => ({...f, currency: e.target.value}))}>
+                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+              </select>
+            </FormRow>
+          </div>
+          <FormRow label="Date">
+            <input type="date" className="input" value={editExpForm.date} onChange={e => setEditExpForm(f => ({...f, date: e.target.value}))} />
+          </FormRow>
+          <FormRow label="Notes">
+            <textarea className="input resize-none" rows={2} value={editExpForm.notes} onChange={e => setEditExpForm(f => ({...f, notes: e.target.value}))} />
+          </FormRow>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setEditExpModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={handleUpdateExpense} disabled={saving} className="btn-primary flex-1">{saving ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </Modal>
       )}
