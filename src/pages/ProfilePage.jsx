@@ -125,6 +125,9 @@ export default function ProfilePage() {
   const [shareModal,      setShareModal]      = useState(false)
   const [dreamInput,      setDreamInput]      = useState('')
   const [savingDream,     setSavingDream]     = useState(false)
+  const [followModal,     setFollowModal]     = useState(null)  // 'followers' | 'following'
+  const [followList,      setFollowList]      = useState([])
+  const [followListLoading, setFollowListLoading] = useState(false)
 
   const avatarRef = useRef(null)
   const coverRef  = useRef(null)
@@ -235,6 +238,26 @@ export default function ProfilePage() {
     if (error) toast.error(error.message)
   }
 
+  const openFollowModal = async (type) => {
+    setFollowModal(type)
+    setFollowList([])
+    setFollowListLoading(true)
+    if (type === 'followers') {
+      const { data } = await supabase
+        .from('follows')
+        .select('profiles!follows_follower_id_fkey(id,full_name,avatar_url,username,travel_personality)')
+        .eq('following_id', profile.id)
+      setFollowList((data || []).map(r => r.profiles).filter(Boolean))
+    } else {
+      const { data } = await supabase
+        .from('follows')
+        .select('profiles!follows_following_id_fkey(id,full_name,avatar_url,username,travel_personality)')
+        .eq('follower_id', profile.id)
+      setFollowList((data || []).map(r => r.profiles).filter(Boolean))
+    }
+    setFollowListLoading(false)
+  }
+
   const handleShare = () => {
     const url = `${window.location.origin}/profile/${profile?.id}`
     navigator.clipboard.writeText(url).then(() => toast.success('Profile link copied!'))
@@ -331,13 +354,14 @@ export default function ProfilePage() {
           {/* Stats row */}
           <div className="flex gap-6 sm:gap-8 border-t border-slate-100 pt-4 mt-4">
             {[
-              { label:'Trips',     value: trips.length },
-              { label:'Countries', value: allCountries.length || profile?.total_countries || 0 },
-              { label:'Followers', value: profile?.follower_count  || 0 },
-              { label:'Following', value: profile?.following_count || 0 },
+              { label:'Trips',     value: trips.length,                                         click: null },
+              { label:'Countries', value: allCountries.length || profile?.total_countries || 0, click: null },
+              { label:'Followers', value: profile?.follower_count  || 0,                        click: 'followers' },
+              { label:'Following', value: profile?.following_count || 0,                        click: 'following' },
             ].map(s => (
-              <div key={s.label} className="text-center">
-                <div className="font-bold text-slate-900 text-lg font-display leading-tight">{s.value}</div>
+              <div key={s.label} className={`text-center ${s.click ? 'cursor-pointer group' : ''}`}
+                onClick={() => s.click && openFollowModal(s.click)}>
+                <div className={`font-bold text-slate-900 text-lg font-display leading-tight ${s.click ? 'group-hover:text-sky-600 transition-colors' : ''}`}>{s.value}</div>
                 <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
               </div>
             ))}
@@ -715,6 +739,58 @@ export default function ProfilePage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Followers / Following Modal ─────────────────────────────── */}
+      {followModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setFollowModal(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800 font-display capitalize">
+                {followModal === 'followers' ? 'Followers' : 'Following'}
+              </h3>
+              <button onClick={() => setFollowModal(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={18}/>
+              </button>
+            </div>
+            <div className="max-h-80 overflow-y-auto py-2">
+              {followListLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-slate-400"/>
+                </div>
+              ) : followList.length === 0 ? (
+                <p className="text-center text-slate-400 text-sm py-8">
+                  No {followModal} yet
+                </p>
+              ) : (
+                followList.map(u => {
+                  const pColor = ['from-sky-400 to-indigo-500','from-violet-400 to-purple-600','from-orange-400 to-rose-500','from-emerald-400 to-teal-600'][u.full_name?.charCodeAt(0)%4||0]
+                  return (
+                    <Link key={u.id} to={`/profile/${u.id}`}
+                      onClick={() => setFollowModal(null)}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${pColor} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden`}>
+                        {u.avatar_url
+                          ? <img src={u.avatar_url} alt="" className="w-full h-full object-cover"/>
+                          : <span>{u.full_name?.[0]?.toUpperCase()||'?'}</span>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-800 text-sm truncate">{u.full_name}</p>
+                        {u.username && <p className="text-xs text-slate-400">@{u.username}</p>}
+                      </div>
+                      {u.travel_personality && (
+                        <span className="text-xs text-slate-400 flex-shrink-0">{u.travel_personality}</span>
+                      )}
+                    </Link>
+                  )
+                })
+              )}
+            </div>
+          </div>
         </div>
       )}
 

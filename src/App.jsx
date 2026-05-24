@@ -16,6 +16,7 @@ import NewTripPage from './pages/NewTripPage'
 import ExplorePage from './pages/ExplorePage'
 import ProfilePage from './pages/ProfilePage'
 import PublicProfilePage from './pages/PublicProfilePage'
+import MessagesPage from './pages/MessagesPage'
 import SupportPage from './pages/SupportPage'
 import BookingPage from './pages/BookingPage'
 import DealsPage from './pages/DealsPage'
@@ -75,8 +76,10 @@ export default function App() {
         <Route path="/trips/new" element={<NewTripPage />} />
         <Route path="/trips/:id" element={<TripDetailPage />} />
         <Route path="/explore"   element={<ExplorePage />} />
-        <Route path="/profile"          element={<ProfilePage />} />
-        <Route path="/profile/:userId" element={<PublicProfilePage />} />
+        <Route path="/profile"           element={<ProfilePage />} />
+        <Route path="/profile/:userId"  element={<PublicProfilePage />} />
+        <Route path="/messages"         element={<MessagesPage />} />
+        <Route path="/messages/:userId" element={<MessagesPage />} />
         <Route path="/support"   element={<SupportPage />} />
         <Route path="/booking"   element={<BookingPage />} />
         <Route path="/deals"     element={<DealsPage />} />

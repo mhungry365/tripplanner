@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag, Search, Settings, ChevronDown } from 'lucide-react'
+import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag, Search, Settings, ChevronDown, MessageCircle } from 'lucide-react'
 import { APP_NAME } from '../../lib/constants'
 import toast from 'react-hot-toast'
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/feed',      label: 'Feed',      icon: Heart },
+  { path: '/messages',  label: 'Messages',  icon: MessageCircle },
   { path: '/explore',   label: 'Explore',   icon: Compass },
   { path: '/trips',     label: 'My Trips',  icon: Map },
   { path: '/booking',   label: 'Booking',   icon: Plane },
@@ -37,6 +38,7 @@ export default function AppLayout() {
   const [notifications, setNotifications] = useState([])
   const [notifOpen, setNotifOpen]         = useState(false)
   const [userId, setUserId]               = useState(null)
+  const [unreadMsgs, setUnreadMsgs]       = useState(0)
   const notifRef = useRef(null)
   const unreadCount = notifications.filter(n => !n.is_read).length
 
@@ -50,6 +52,15 @@ export default function AppLayout() {
     setNotifications(data || [])
   }
 
+  const fetchUnreadMsgs = async (uid) => {
+    const { count } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('receiver_id', uid)
+      .eq('is_read', false)
+    setUnreadMsgs(count || 0)
+  }
+
   useEffect(() => {
     let channel
 
@@ -58,6 +69,7 @@ export default function AppLayout() {
       if (!user) return
       setUserId(user.id)
       await fetchNotifs(user.id)
+      await fetchUnreadMsgs(user.id)
 
       channel = supabase
         .channel(`notif-${user.id}`)
@@ -67,6 +79,10 @@ export default function AppLayout() {
           ({ new: row }) => setNotifications(prev => prev.map(n => n.id === row.id ? row : n)))
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
           ({ old: row }) => setNotifications(prev => prev.filter(n => n.id !== row.id)))
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+          () => setUnreadMsgs(prev => prev + 1))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+          ({ new: row }) => { if (row.is_read) setUnreadMsgs(prev => Math.max(0, prev - 1)) })
         .subscribe()
     }
 
@@ -135,6 +151,7 @@ export default function AppLayout() {
     const Icon = item.icon
     const active = location.pathname === item.path ||
       (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+    const badge = item.path === '/messages' && unreadMsgs > 0 ? unreadMsgs : 0
     return (
       <Link to={item.path} onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200
@@ -144,6 +161,13 @@ export default function AppLayout() {
           }`}>
         <Icon size={18} />
         {item.label}
+        {badge > 0 && (
+          <span className={`ml-auto min-w-[20px] h-5 text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none ${
+            active ? 'bg-white/30 text-white' : 'bg-red-500 text-white'
+          }`}>
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
       </Link>
     )
   }
