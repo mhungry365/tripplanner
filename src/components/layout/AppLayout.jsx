@@ -36,8 +36,19 @@ export default function AppLayout() {
   // Notifications
   const [notifications, setNotifications] = useState([])
   const [notifOpen, setNotifOpen]         = useState(false)
+  const [userId, setUserId]               = useState(null)
   const notifRef = useRef(null)
   const unreadCount = notifications.filter(n => !n.is_read).length
+
+  const fetchNotifs = async (uid) => {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setNotifications(data || [])
+  }
 
   useEffect(() => {
     let channel
@@ -45,28 +56,17 @@ export default function AppLayout() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      setUserId(user.id)
+      await fetchNotifs(user.id)
 
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      console.log('notifications:', data, 'error:', error)
-      setNotifications(data || [])
-
-      // Real-time: new notifications pushed from admin broadcasts
       channel = supabase
         .channel(`notif-${user.id}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        }, ({ new: row }) => {
-          setNotifications(prev => [row, ...prev])
-        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          ({ new: row }) => setNotifications(prev => [row, ...prev]))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          ({ new: row }) => setNotifications(prev => prev.map(n => n.id === row.id ? row : n)))
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          ({ old: row }) => setNotifications(prev => prev.filter(n => n.id !== row.id)))
         .subscribe()
     }
 
@@ -91,10 +91,25 @@ export default function AppLayout() {
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
+  const toggleNotif = async () => {
+    if (!notifOpen && userId) await fetchNotifs(userId)
+    setNotifOpen(v => !v)
+  }
+
   const markRead = async (notif) => {
-    if (notif.is_read) return
-    await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id)
-    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n))
+    if (!notif.is_read) {
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id)
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n))
+    }
+    if (notif.action_url) {
+      setNotifOpen(false)
+      navigate(notif.action_url)
+    }
+  }
+
+  const deleteNotif = async (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+    await supabase.from('notifications').delete().eq('id', id)
   }
 
   const markAllRead = async () => {
@@ -102,6 +117,12 @@ export default function AppLayout() {
     if (!ids.length) return
     await supabase.from('notifications').update({ is_read: true }).in('id', ids)
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+  }
+
+  const clearAll = async () => {
+    if (!userId) return
+    setNotifications([])
+    await supabase.from('notifications').delete().eq('user_id', userId)
   }
 
   const handleSignOut = async () => {
@@ -242,7 +263,7 @@ export default function AppLayout() {
             {/* Notification bell */}
             <div className="relative" ref={notifRef}>
               <button
-                onClick={() => setNotifOpen(v => !v)}
+                onClick={toggleNotif}
                 className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <Bell size={18} />
                 {unreadCount > 0 && (
@@ -253,32 +274,51 @@ export default function AppLayout() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-14 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                <div className="absolute right-0 top-14 w-80 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                    <span className="font-semibold text-slate-800 text-sm">Notifications</span>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllRead} className="text-xs text-sky-600 hover:text-sky-700 font-semibold">
-                        Mark all read
-                      </button>
-                    )}
+                    <span className="font-semibold text-slate-800 text-sm">
+                      Notifications {unreadCount > 0 && <span className="ml-1 text-xs font-bold bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} className="text-xs text-sky-600 hover:text-sky-700 font-semibold transition-colors">
+                          Mark all read
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button onClick={clearAll} className="text-xs text-red-400 hover:text-red-500 font-semibold transition-colors">
+                          Clear all
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
                     {notifications.length === 0 ? (
                       <div className="text-center py-10">
-                        <Bell size={24} className="text-slate-300 mx-auto mb-2" />
-                        <p className="text-slate-400 text-sm">No notifications yet</p>
+                        <div className="text-3xl mb-2">🎉</div>
+                        <p className="text-slate-700 text-sm font-semibold">You're all caught up!</p>
+                        <p className="text-slate-400 text-xs mt-1">No new notifications</p>
                       </div>
                     ) : (
                       notifications.map(n => (
-                        <button key={n.id} onClick={() => markRead(n)}
-                          className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex gap-3 ${!n.is_read ? 'bg-sky-50/60' : ''}`}>
-                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.is_read ? 'bg-sky-500' : 'bg-slate-200'}`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{n.title}</p>
-                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
-                            <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.created_at)}</p>
-                          </div>
-                        </button>
+                        <div key={n.id} className={`flex items-start gap-2 px-4 py-3 transition-colors ${!n.is_read ? 'bg-sky-50/60' : 'hover:bg-slate-50'}`}>
+                          <button
+                            onClick={() => markRead(n)}
+                            className="flex items-start gap-2.5 flex-1 min-w-0 text-left">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.is_read ? 'bg-sky-500' : 'bg-slate-200'}`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-800 leading-snug">{n.title}</p>
+                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
+                              <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.created_at)}</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteNotif(n.id) }}
+                            className="flex-shrink-0 p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors mt-0.5"
+                            title="Delete notification">
+                            <X size={13} />
+                          </button>
+                        </div>
                       ))
                     )}
                   </div>
