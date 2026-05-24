@@ -17,17 +17,18 @@ export default async function handler(req, res) {
   }))
 
   try {
+    const fullContents = [
+      { role: 'user',  parts: [{ text: 'You are an expert travel assistant for Holidater app. Help users find best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful.' }] },
+      { role: 'model', parts: [{ text: 'I am your Holidater travel assistant! I can help you find the best flights, hotels, travel tips, visa information and more. What would you like to know?' }] },
+      ...contents,
+    ]
+
     const upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: 'You are an expert travel assistant for Holidater app. Help users find best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful. Format responses clearly with bullet points where appropriate.' }],
-          },
-          contents,
-        }),
+        body: JSON.stringify({ contents: fullContents }),
       }
     )
 
