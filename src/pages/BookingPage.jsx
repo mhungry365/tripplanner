@@ -31,7 +31,6 @@ const SUGGESTIONS = [
   'Is travel insurance necessary?',
 ]
 
-const SYSTEM_PROMPT = `You are an expert travel assistant for Holidater app. Help users find the best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful. Always suggest checking official booking sites for real-time prices. Use bullet points and short paragraphs to keep responses scannable. Keep replies under 250 words.`
 
 // ─── AI Chat Component ────────────────────────────────────────────────────────
 
@@ -50,12 +49,6 @@ function AIChat() {
     const q = (text || input).trim()
     if (!q || loading) return
 
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!apiKey) {
-      toast.error('AI assistant requires VITE_ANTHROPIC_API_KEY to be set')
-      return
-    }
-
     const userMsg = { role: 'user', content: q }
     const history = [...messages.slice(-18), userMsg]
     setMessages(history)
@@ -63,25 +56,15 @@ function AIChat() {
     setLoading(true)
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: history,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
       })
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error?.message || `API error ${res.status}`)
+        throw new Error(err.error || `Server error ${res.status}`)
       }
 
       const data = await res.json()
