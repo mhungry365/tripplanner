@@ -117,10 +117,10 @@ export default function AppLayout() {
       await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id)
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n))
     }
-    if (notif.action_url) {
-      setNotifOpen(false)
-      navigate(notif.action_url)
-    }
+    setNotifOpen(false)
+    const followerId = notif.data?.follower_id
+    if (followerId) { navigate(`/profile/${followerId}`); return }
+    if (notif.action_url) navigate(notif.action_url)
   }
 
   const deleteNotif = async (id) => {

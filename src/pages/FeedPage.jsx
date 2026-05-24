@@ -40,10 +40,11 @@ function Avatar({ profile, userId, size = 10 }) {
   )
 }
 
-async function sendNotif(userId, title, message, actionUrl = '/feed') {
+async function sendNotif(userId, title, message, actionUrl = '/feed', data = null) {
   try {
     await supabase.rpc('send_social_notification', {
       p_user_id: userId, p_title: title, p_message: message, p_action_url: actionUrl,
+      ...(data ? { p_data: data } : {}),
     })
   } catch {}
 }
@@ -509,8 +510,13 @@ export default function FeedPage() {
     } else {
       next.add(user.id)
       await supabase.from('follows').insert({ follower_id: currentUserId, following_id: user.id })
-      sendNotif(user.id, `👤 ${profile?.full_name||'Someone'} started following you`,
-        'They are now following your travel adventures!', `/profile/${currentUserId}`)
+      const followerId = currentUserId || profile?.id
+      if (followerId) {
+        sendNotif(user.id, `👤 ${profile?.full_name||'Someone'} started following you`,
+          'They are now following your travel adventures!',
+          `/profile/${followerId}`,
+          { follower_id: followerId })
+      }
     }
     followingRef.current = next
     setFollowingIds(new Set(next))

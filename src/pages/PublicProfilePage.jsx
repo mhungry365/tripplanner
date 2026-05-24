@@ -98,11 +98,18 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     if (!userId) return
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidPattern.test(userId)) {
+      console.log('[PublicProfilePage] invalid userId:', userId)
+      setPageLoading(false)
+      return
+    }
     loadProfile()
   }, [userId])
 
   const loadProfile = async () => {
     setPageLoading(true)
+    console.log('[PublicProfilePage] loading userId:', userId)
 
     const [{ data: profileData }, { data: tripsData }, { data: postsData }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),

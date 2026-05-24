@@ -209,14 +209,18 @@ export default function ExplorePage() {
       setFollowingIds(prev => new Set([...prev, traveller.id]))
       await supabase.from('follows').insert({ follower_id: currentUserId, following_id: traveller.id })
       await supabase.from('profiles').update({ follower_count: (traveller.follower_count||0)+1 }).eq('id', traveller.id)
-      try {
-        await supabase.rpc('send_social_notification', {
-          p_user_id: traveller.id,
-          p_title: `👤 ${profile?.full_name || 'Someone'} started following you`,
-          p_message: 'They are now following your travel adventures!',
-          p_action_url: `/profile/${currentUserId}`,
-        })
-      } catch {}
+      const followerId = currentUserId || profile?.id
+      if (followerId) {
+        try {
+          await supabase.rpc('send_social_notification', {
+            p_user_id: traveller.id,
+            p_title: `👤 ${profile?.full_name || 'Someone'} started following you`,
+            p_message: 'They are now following your travel adventures!',
+            p_action_url: `/profile/${followerId}`,
+            p_data: { follower_id: followerId },
+          })
+        } catch {}
+      }
       toast.success(`Following ${traveller.full_name}!`)
     }
   }
