@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTripsStore } from '../stores/tripsStore'
 import { supabase } from '../lib/supabase'
 import {
   ArrowLeft, Plus, X, MapPin, Clock, ExternalLink,
-  Share2, DollarSign, ChevronRight
+  Share2, DollarSign, ChevronRight, Plane
 } from 'lucide-react'
 import { TRIP_STATUSES, CURRENCIES } from '../lib/constants'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
@@ -98,6 +98,7 @@ function FormRow({ label, children }) {
 
 export default function TripDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { currentTrip, fetchTrip, loading } = useTripsStore()
 
   const [activeTab, setActiveTab]         = useState('itinerary')
@@ -626,6 +627,16 @@ export default function TripDetailPage() {
             {trip.traveller_count > 1 && <><span className="mx-2">·</span> 👥 {trip.traveller_count} travellers</>}
           </p>
         </div>
+        <button
+          onClick={() => {
+            const dest = trip.trip_destinations?.[0]?.city || trip.title
+            const params = new URLSearchParams({ destination: dest, checkin: trip.start_date, checkout: trip.end_date })
+            navigate(`/booking?${params}`)
+          }}
+          className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs font-bold hover:from-sky-600 hover:to-indigo-700 transition-all flex-shrink-0"
+          title="Book flights & hotels">
+          <Plane size={14} /> Book
+        </button>
         <button
           onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!') }}
           className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors flex-shrink-0" title="Share">
