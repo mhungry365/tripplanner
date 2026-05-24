@@ -4,7 +4,7 @@ import { useTripsStore } from '../stores/tripsStore'
 import { supabase } from '../lib/supabase'
 import {
   ArrowLeft, Plus, X, MapPin, Clock, ExternalLink,
-  Share2, DollarSign, ChevronRight, Plane, Pencil, Trash2, Check
+  Share2, ChevronRight, Plane, Pencil, Trash2, Check, GripVertical, Search
 } from 'lucide-react'
 import { TRIP_STATUSES, CURRENCIES } from '../lib/constants'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
@@ -41,12 +41,12 @@ const TRANSPORT_EMOJI = {
 }
 
 const BUDGET_CATS = [
-  { key: 'budget_flights',    label: 'Flights',    emoji: '✈️' },
-  { key: 'budget_hotels',     label: 'Hotels',     emoji: '🏨' },
-  { key: 'budget_food',       label: 'Food',       emoji: '🍜' },
-  { key: 'budget_transport',  label: 'Transport',  emoji: '🚄' },
-  { key: 'budget_activities', label: 'Activities', emoji: '🎭' },
-  { key: 'budget_misc',       label: 'Misc',       emoji: '💼' },
+  { key: 'budget_flights',    label: 'Flights',    emoji: '✈️',  expCat: 'flight' },
+  { key: 'budget_hotels',     label: 'Hotels',     emoji: '🏨',  expCat: 'accommodation' },
+  { key: 'budget_food',       label: 'Food',       emoji: '🍜',  expCat: 'food' },
+  { key: 'budget_transport',  label: 'Transport',  emoji: '🚄',  expCat: 'transport' },
+  { key: 'budget_activities', label: 'Activities', emoji: '🎭',  expCat: 'activities' },
+  { key: 'budget_misc',       label: 'Misc',       emoji: '💼',  expCat: null },
 ]
 
 const ALERTS_MAP = {
@@ -65,7 +65,9 @@ function getAlerts(trip) {
   return ALERTS_MAP.default
 }
 
-// ─── Shared Modal Wrapper ────────────────────────────────────────────────────
+const HOTEL_STATUSES = ['wishlist','pending','booked','confirmed','checked_in','checked_out','cancelled']
+
+// ─── Shared Modal ────────────────────────────────────────────────────────────
 
 function Modal({ title, onClose, children }) {
   return (
@@ -109,30 +111,52 @@ export default function TripDetailPage() {
   const [saving, setSaving]               = useState(false)
   const [catFilter, setCatFilter]         = useState('all')
 
-  // Modal states
+  // Add modals
   const [activityModal, setActivityModal] = useState(false)
   const [hotelModal, setHotelModal]       = useState(false)
   const [transportModal, setTransportModal] = useState(false)
   const [expenseModal, setExpenseModal]   = useState(false)
   const [selectedDay, setSelectedDay]     = useState(null)
 
-  // Form states
+  // Add forms
   const [actForm, setActForm] = useState({ title: '', category: 'sightseeing', location: '', start_time: '', cost: '', notes: '' })
-  const [hotelForm, setHotelForm] = useState({ name: '', address: '', city: '', phone: '', website: '', check_in_date: '', check_out_date: '', cost_per_night: '', cost_currency: 'EUR', booking_ref: '', notes: '' })
+  const [hotelForm, setHotelForm] = useState({ name: '', address: '', city: '', phone: '', website: '', check_in_date: '', check_out_date: '', cost_per_night: '', cost_currency: 'EUR', booking_ref: '', status: 'wishlist', notes: '' })
   const [legForm, setLegForm] = useState({ type: 'flight', from_city: '', to_city: '', departure_date: '', departure_time: '', arrival_time: '', cost: '', cost_currency: 'EUR', operator: '', booking_ref: '', notes: '' })
   const [expForm, setExpForm] = useState({ category: 'food', title: '', amount: '', currency: 'EUR', date: '', notes: '' })
 
-  // Edit expense state
-  const [editExpModal,   setEditExpModal]   = useState(false)
-  const [editExpId,      setEditExpId]      = useState(null)
-  const [editExpForm,    setEditExpForm]    = useState({ category: 'food', title: '', amount: '', currency: 'EUR', date: '', notes: '' })
-  // Editable budget
+  // Edit activity
+  const [editActModal,  setEditActModal]  = useState(false)
+  const [editActId,     setEditActId]     = useState(null)
+  const [editActForm,   setEditActForm]   = useState({ title: '', category: 'sightseeing', location: '', start_time: '', cost: '', notes: '' })
+
+  // Edit hotel
+  const [editHotelModal, setEditHotelModal] = useState(false)
+  const [editHotelId,    setEditHotelId]    = useState(null)
+  const [editHotelForm,  setEditHotelForm]  = useState({ name: '', address: '', city: '', phone: '', website: '', check_in_date: '', check_out_date: '', cost_per_night: '', cost_currency: 'EUR', booking_ref: '', status: 'wishlist', notes: '' })
+
+  // Edit transport
+  const [editLegModal, setEditLegModal] = useState(false)
+  const [editLegId,    setEditLegId]    = useState(null)
+  const [editLegForm,  setEditLegForm]  = useState({ type: 'flight', from_city: '', to_city: '', departure_date: '', departure_time: '', arrival_time: '', cost: '', cost_currency: 'EUR', operator: '', booking_ref: '', notes: '' })
+
+  // Edit expense
+  const [editExpModal,  setEditExpModal]  = useState(false)
+  const [editExpId,     setEditExpId]     = useState(null)
+  const [editExpForm,   setEditExpForm]   = useState({ category: 'food', title: '', amount: '', currency: 'EUR', date: '', notes: '' })
+
+  // Budget
   const [editingBudget,  setEditingBudget]  = useState(false)
   const [newBudget,      setNewBudget]      = useState('')
+  const [editCatBudget,    setEditCatBudget]    = useState(null)
+  const [editCatBudgetVal, setEditCatBudgetVal] = useState('')
+
+  // Day title editing
+  const [editDayId,    setEditDayId]    = useState(null)
+  const [editDayTitle, setEditDayTitle] = useState('')
+  const [addingDay,    setAddingDay]    = useState(false)
 
   const trip = currentTrip
 
-  // Initial load
   useEffect(() => {
     const load = async () => {
       const data = await fetchTrip(id)
@@ -144,7 +168,6 @@ export default function TripDetailPage() {
     load()
   }, [id])
 
-  // Budget transactions
   useEffect(() => {
     if (!id) return
     supabase.from('budget_transactions').select('*').eq('trip_id', id)
@@ -152,7 +175,6 @@ export default function TripDetailPage() {
       .then(({ data }) => setTransactions(data || []))
   }, [id])
 
-  // Auto-generate itinerary days if none exist
   const ensureDays = async (data) => {
     if (!data.start_date || !data.end_date) return
     if (data.itinerary_days?.length > 0) {
@@ -208,7 +230,7 @@ export default function TripDetailPage() {
     const { data, error } = await supabase.from('accommodations').insert({
       trip_id: trip.id,
       type: 'hotel',
-      status: 'wishlist',
+      status: hotelForm.status || 'wishlist',
       name: hotelForm.name.trim(),
       address: hotelForm.address || null,
       city: hotelForm.city || null,
@@ -227,7 +249,7 @@ export default function TripDetailPage() {
     else {
       setHotels(prev => [...prev, data])
       setHotelModal(false)
-      setHotelForm({ name: '', address: '', city: '', phone: '', website: '', check_in_date: '', check_out_date: '', cost_per_night: '', cost_currency: 'EUR', booking_ref: '', notes: '' })
+      setHotelForm({ name: '', address: '', city: '', phone: '', website: '', check_in_date: '', check_out_date: '', cost_per_night: '', cost_currency: 'EUR', booking_ref: '', status: 'wishlist', notes: '' })
       toast.success('Hotel added!')
     }
     setSaving(false)
@@ -286,38 +308,106 @@ export default function TripDetailPage() {
     setSaving(false)
   }
 
+  // ── Edit/Delete activity ──────────────────────────────────────────────────
+
+  const openEditAct = (a) => {
+    setEditActId(a.id)
+    setEditActForm({ title: a.title||'', category: a.category||'sightseeing', location: a.location_name||'', start_time: a.start_time||'', cost: a.cost_eur?.toString()||'', notes: a.notes||'' })
+    setEditActModal(true)
+  }
+
+  const handleUpdateAct = async () => {
+    if (!editActForm.title.trim()) { toast.error('Title required'); return }
+    setSaving(true)
+    const patch = { title: editActForm.title.trim(), category: editActForm.category, location_name: editActForm.location||null, start_time: editActForm.start_time||null, cost_eur: parseFloat(editActForm.cost)||0, cost_local: parseFloat(editActForm.cost)||0, notes: editActForm.notes||null }
+    const { error } = await supabase.from('activities').update(patch).eq('id', editActId)
+    if (error) { toast.error(error.message) }
+    else {
+      setDays(prev => prev.map(d => ({ ...d, activities: (d.activities||[]).map(a => a.id === editActId ? {...a,...patch} : a) })))
+      setEditActModal(false)
+      toast.success('Activity updated!')
+    }
+    setSaving(false)
+  }
+
+  const handleDeleteAct = async (actId, dayId) => {
+    if (!window.confirm('Delete this activity?')) return
+    const { error } = await supabase.from('activities').delete().eq('id', actId)
+    if (error) { toast.error(error.message); return }
+    setDays(prev => prev.map(d => d.id === dayId ? { ...d, activities: (d.activities||[]).filter(a => a.id !== actId) } : d))
+    toast.success('Activity deleted')
+  }
+
+  // ── Edit/Delete hotel ─────────────────────────────────────────────────────
+
+  const openEditHotel = (h) => {
+    setEditHotelId(h.id)
+    setEditHotelForm({ name: h.name||'', address: h.address||'', city: h.city||'', phone: h.phone||'', website: h.website||'', check_in_date: h.check_in_date||'', check_out_date: h.check_out_date||'', cost_per_night: h.cost_per_night_eur?.toString()||'', cost_currency: h.cost_currency||'EUR', booking_ref: h.booking_ref||'', status: h.status||'wishlist', notes: h.notes||'' })
+    setEditHotelModal(true)
+  }
+
+  const handleUpdateHotel = async () => {
+    if (!editHotelForm.name.trim()) { toast.error('Hotel name required'); return }
+    setSaving(true)
+    const nights = editHotelForm.check_in_date && editHotelForm.check_out_date
+      ? Math.max(1, (new Date(editHotelForm.check_out_date) - new Date(editHotelForm.check_in_date)) / 86400000)
+      : null
+    const patch = { name: editHotelForm.name.trim(), address: editHotelForm.address||null, city: editHotelForm.city||null, phone: editHotelForm.phone||null, website: editHotelForm.website||null, check_in_date: editHotelForm.check_in_date||null, check_out_date: editHotelForm.check_out_date||null, cost_per_night_eur: parseFloat(editHotelForm.cost_per_night)||null, cost_per_night_local: parseFloat(editHotelForm.cost_per_night)||null, total_cost_eur: nights && editHotelForm.cost_per_night ? nights * parseFloat(editHotelForm.cost_per_night) : null, cost_currency: editHotelForm.cost_currency, booking_ref: editHotelForm.booking_ref||null, status: editHotelForm.status, notes: editHotelForm.notes||null }
+    const { error } = await supabase.from('accommodations').update(patch).eq('id', editHotelId)
+    if (error) { toast.error(error.message) }
+    else { setHotels(prev => prev.map(h => h.id === editHotelId ? {...h,...patch} : h)); setEditHotelModal(false); toast.success('Hotel updated!') }
+    setSaving(false)
+  }
+
+  const handleDeleteHotel = async (hotelId) => {
+    if (!window.confirm('Remove this hotel?')) return
+    const { error } = await supabase.from('accommodations').delete().eq('id', hotelId)
+    if (error) { toast.error(error.message); return }
+    setHotels(prev => prev.filter(h => h.id !== hotelId))
+    toast.success('Hotel removed')
+  }
+
+  // ── Edit/Delete transport ─────────────────────────────────────────────────
+
+  const openEditLeg = (l) => {
+    setEditLegId(l.id)
+    setEditLegForm({ type: l.type||'flight', from_city: l.from_city||'', to_city: l.to_city||'', departure_date: l.departure_date||'', departure_time: l.departure_time||'', arrival_time: l.arrival_time||'', cost: l.cost_eur?.toString()||'', cost_currency: l.cost_currency||'EUR', operator: l.operator||'', booking_ref: l.booking_ref||'', notes: l.notes||'' })
+    setEditLegModal(true)
+  }
+
+  const handleUpdateLeg = async () => {
+    if (!editLegForm.from_city.trim() || !editLegForm.to_city.trim()) { toast.error('From and To cities required'); return }
+    setSaving(true)
+    const patch = { type: editLegForm.type, from_city: editLegForm.from_city.trim(), to_city: editLegForm.to_city.trim(), departure_date: editLegForm.departure_date||null, departure_time: editLegForm.departure_time||null, arrival_time: editLegForm.arrival_time||null, cost_eur: parseFloat(editLegForm.cost)||0, cost_local: parseFloat(editLegForm.cost)||0, cost_currency: editLegForm.cost_currency, operator: editLegForm.operator||null, booking_ref: editLegForm.booking_ref||null, notes: editLegForm.notes||null }
+    const { error } = await supabase.from('transport_legs').update(patch).eq('id', editLegId)
+    if (error) { toast.error(error.message) }
+    else { setLegs(prev => prev.map(l => l.id === editLegId ? {...l,...patch} : l)); setEditLegModal(false); toast.success('Transport updated!') }
+    setSaving(false)
+  }
+
+  const handleDeleteLeg = async (legId) => {
+    if (!window.confirm('Remove this transport leg?')) return
+    const { error } = await supabase.from('transport_legs').delete().eq('id', legId)
+    if (error) { toast.error(error.message); return }
+    setLegs(prev => prev.filter(l => l.id !== legId))
+    toast.success('Transport removed')
+  }
+
+  // ── Edit/Delete expense ───────────────────────────────────────────────────
+
   const openEditExpense = (t) => {
     setEditExpId(t.id)
-    setEditExpForm({
-      category: t.category || 'food',
-      title:    t.title || '',
-      amount:   t.amount_local?.toString() || '',
-      currency: t.currency_local || 'EUR',
-      date:     t.transaction_date || '',
-      notes:    t.notes || '',
-    })
+    setEditExpForm({ category: t.category||'food', title: t.title||'', amount: t.amount_local?.toString()||'', currency: t.currency_local||'EUR', date: t.transaction_date||'', notes: t.notes||'' })
     setEditExpModal(true)
   }
 
   const handleUpdateExpense = async () => {
     if (!editExpForm.title.trim() || !editExpForm.amount) { toast.error('Title and amount required'); return }
     setSaving(true)
-    const patch = {
-      category:         editExpForm.category,
-      title:            editExpForm.title.trim(),
-      amount_local:     parseFloat(editExpForm.amount),
-      currency_local:   editExpForm.currency,
-      amount_eur:       parseFloat(editExpForm.amount),
-      transaction_date: editExpForm.date || null,
-      notes:            editExpForm.notes || null,
-    }
+    const patch = { category: editExpForm.category, title: editExpForm.title.trim(), amount_local: parseFloat(editExpForm.amount), currency_local: editExpForm.currency, amount_eur: parseFloat(editExpForm.amount), transaction_date: editExpForm.date||null, notes: editExpForm.notes||null }
     const { error } = await supabase.from('budget_transactions').update(patch).eq('id', editExpId)
     if (error) { toast.error(error.message) }
-    else {
-      setTransactions(prev => prev.map(t => t.id === editExpId ? { ...t, ...patch } : t))
-      setEditExpModal(false)
-      toast.success('Expense updated!')
-    }
+    else { setTransactions(prev => prev.map(t => t.id === editExpId ? {...t,...patch} : t)); setEditExpModal(false); toast.success('Expense updated!') }
     setSaving(false)
   }
 
@@ -329,6 +419,8 @@ export default function TripDetailPage() {
     toast.success('Expense deleted')
   }
 
+  // ── Budget ────────────────────────────────────────────────────────────────
+
   const handleUpdateBudget = async () => {
     const val = parseFloat(newBudget)
     if (isNaN(val) || val < 0) { toast.error('Enter a valid budget amount'); return }
@@ -339,7 +431,46 @@ export default function TripDetailPage() {
     toast.success('Budget updated!')
   }
 
-  // ── Loading state ─────────────────────────────────────────────────────────
+  const handleUpdateCatBudget = async () => {
+    const val = parseFloat(editCatBudgetVal)
+    if (isNaN(val) || val < 0) { toast.error('Enter a valid amount'); return }
+    const { error } = await supabase.from('trips').update({ [editCatBudget]: val }).eq('id', trip.id)
+    if (error) { toast.error(error.message); return }
+    await fetchTrip(id)
+    setEditCatBudget(null)
+    toast.success('Category budget updated!')
+  }
+
+  // ── Day management ────────────────────────────────────────────────────────
+
+  const handleAddDay = async () => {
+    if (!trip) return
+    setAddingDay(true)
+    const lastDay = days[days.length - 1]
+    const newDate = lastDay
+      ? format(new Date(new Date(lastDay.date).getTime() + 86400000), 'yyyy-MM-dd')
+      : (trip.start_date || format(new Date(), 'yyyy-MM-dd'))
+    const { data, error } = await supabase.from('itinerary_days').insert({
+      trip_id: trip.id,
+      day_number: (lastDay?.day_number || 0) + 1,
+      date: newDate,
+      city: trip.trip_destinations?.[0]?.city || '',
+      phase: 'explore',
+    }).select().single()
+    if (error) { toast.error(error.message) }
+    else { setDays(prev => [...prev, { ...data, activities: [] }]); toast.success('Day added!') }
+    setAddingDay(false)
+  }
+
+  const handleSaveDayTitle = async (dayId) => {
+    const { error } = await supabase.from('itinerary_days').update({ title: editDayTitle }).eq('id', dayId)
+    if (error) { toast.error(error.message); return }
+    setDays(prev => prev.map(d => d.id === dayId ? { ...d, title: editDayTitle } : d))
+    setEditDayId(null)
+  }
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+
   if (loading || !trip) return (
     <div className="space-y-4 animate-fade-in max-w-5xl">
       <div className="h-10 w-48 shimmer rounded-xl" />
@@ -349,11 +480,18 @@ export default function TripDetailPage() {
     </div>
   )
 
-  const allActivities = days.flatMap(d => (d.activities || []).map(a => ({ ...a, day_number: d.day_number, day_date: d.date })))
+  const allActivities = days.flatMap(d => (d.activities || []).map(a => ({ ...a, day_number: d.day_number, day_date: d.date, day_id: d.id })))
   const totalTransportCost = legs.reduce((s, l) => s + (l.cost_eur || 0), 0)
   const totalSpent = transactions.reduce((s, t) => s + (t.amount_eur || 0), 0)
   const budgetPct = trip.budget_total > 0 ? Math.min(100, (totalSpent / trip.budget_total) * 100) : 0
   const alerts = getAlerts(trip)
+
+  const spentByExpCat = transactions.reduce((acc, t) => {
+    acc[t.category] = (acc[t.category] || 0) + (t.amount_eur || 0)
+    return acc
+  }, {})
+
+  const EXP_CATS = ['flight','accommodation','food','transport','activities','shopping','visa','insurance','communication','other']
 
   // ── Tab: Itinerary ────────────────────────────────────────────────────────
   const TabItinerary = (
@@ -361,49 +499,93 @@ export default function TripDetailPage() {
       {days.length === 0 ? (
         <div className="card text-center py-14">
           <div className="text-4xl mb-3">📅</div>
-          <p className="text-slate-500 text-sm">No dates set on this trip yet.</p>
+          <p className="text-slate-500 text-sm mb-4">No dates set on this trip yet.</p>
+          <button onClick={handleAddDay} disabled={addingDay} className="btn-primary text-sm py-2 inline-flex items-center gap-1.5">
+            <Plus size={14} /> Add First Day
+          </button>
         </div>
-      ) : days.map(day => (
-        <div key={day.id} className="card overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
-                {day.day_number}
-              </div>
-              <div>
-                <div className="font-bold text-slate-800 font-display">
-                  {format(parseISO(day.date), 'EEEE')}
-                  <span className="font-normal text-slate-500 ml-2 text-sm">{format(parseISO(day.date), 'MMM d, yyyy')}</span>
-                </div>
-                {day.city && <div className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={10} /> {day.city}</div>}
-              </div>
-            </div>
-            <button
-              onClick={() => { setSelectedDay(day); setActivityModal(true) }}
-              className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 px-3 py-1.5 rounded-lg transition-colors">
-              <Plus size={13} /> Add
-            </button>
-          </div>
-
-          {day.activities?.length > 0 ? (
-            <div className="mt-3 pl-14 space-y-2">
-              {day.activities.map(a => (
-                <div key={a.id} className="flex items-center gap-2.5 py-2 border-t border-slate-50">
-                  <span className="text-lg">{CAT[a.category]?.emoji || '📍'}</span>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-slate-700">{a.title}</span>
-                    {a.location_name && <span className="text-xs text-slate-400 ml-2">{a.location_name}</span>}
+      ) : (
+        <>
+          {days.map(day => (
+            <div key={day.id} className="card overflow-hidden">
+              {/* Day header */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
+                    {day.day_number}
                   </div>
-                  {a.start_time && <span className="text-xs text-slate-400 flex items-center gap-1"><Clock size={10} />{a.start_time.slice(0,5)}</span>}
-                  {a.cost_eur > 0 && <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">€{a.cost_eur}</span>}
+                  <div className="flex-1 min-w-0">
+                    {editDayId === day.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          autoFocus
+                          className="text-sm font-bold border border-sky-300 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-sky-400 flex-1 min-w-0"
+                          value={editDayTitle}
+                          onChange={e => setEditDayTitle(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleSaveDayTitle(day.id); if (e.key === 'Escape') setEditDayId(null) }}
+                          placeholder="Day title..."
+                        />
+                        <button onClick={() => handleSaveDayTitle(day.id)} className="p-1 rounded-lg bg-sky-500 text-white hover:bg-sky-600 flex-shrink-0"><Check size={13} /></button>
+                        <button onClick={() => setEditDayId(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 flex-shrink-0"><X size={13} /></button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditDayId(day.id); setEditDayTitle(day.title || '') }}
+                        className="group flex items-center gap-1.5 text-left w-full">
+                        <div className="font-bold text-slate-800 font-display text-sm">
+                          {day.title || format(parseISO(day.date), 'EEEE')}
+                          <span className="font-normal text-slate-400 ml-2 text-xs">{format(parseISO(day.date), 'MMM d')}</span>
+                        </div>
+                        <Pencil size={11} className="text-slate-300 group-hover:text-sky-400 transition-colors flex-shrink-0" />
+                      </button>
+                    )}
+                    {day.city && editDayId !== day.id && (
+                      <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin size={9} />{day.city}</div>
+                    )}
+                  </div>
                 </div>
-              ))}
+                <button
+                  onClick={() => { setSelectedDay(day); setActivityModal(true) }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">
+                  <Plus size={13} /> Add
+                </button>
+              </div>
+
+              {/* Activities */}
+              {day.activities?.length > 0 ? (
+                <div className="mt-3 pl-14 space-y-1">
+                  {day.activities.map(a => (
+                    <div key={a.id} className="flex items-center gap-2 py-1.5 border-t border-slate-50 group">
+                      <GripVertical size={13} className="text-slate-200 flex-shrink-0 cursor-grab" />
+                      <span className="text-base">{CAT[a.category]?.emoji || '📍'}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-semibold text-slate-700">{a.title}</span>
+                        {a.location_name && <span className="text-xs text-slate-400 ml-1.5">{a.location_name}</span>}
+                      </div>
+                      {a.start_time && <span className="text-xs text-slate-400 flex items-center gap-0.5"><Clock size={9} />{a.start_time.slice(0,5)}</span>}
+                      {a.cost_eur > 0 && <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-full">€{a.cost_eur}</span>}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <button onClick={() => openEditAct(a)} className="p-1 rounded text-slate-300 hover:text-sky-500 hover:bg-sky-50 transition-colors"><Pencil size={12} /></button>
+                        <button onClick={() => handleDeleteAct(a.id, day.id)} className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={12} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 mt-3 pl-14 italic">No activities — click + to add</p>
+              )}
             </div>
-          ) : (
-            <p className="text-xs text-slate-400 mt-3 pl-14">No activities planned — click + to add</p>
-          )}
-        </div>
-      ))}
+          ))}
+
+          {/* Add day */}
+          <button
+            onClick={handleAddDay}
+            disabled={addingDay}
+            className="w-full card border-dashed border-2 border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 transition-all text-sm font-semibold text-slate-400 hover:text-sky-600 py-4 flex items-center justify-center gap-2">
+            <Plus size={16} /> {addingDay ? 'Adding...' : 'Add Day'}
+          </button>
+        </>
+      )}
     </div>
   )
 
@@ -435,11 +617,15 @@ export default function TripDetailPage() {
                   <div className="font-bold text-slate-800 truncate font-display">{h.name}</div>
                   {h.city && <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin size={10} />{h.city}</div>}
                 </div>
-                {h.status && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${h.status === 'confirmed' ? 'bg-green-100 text-green-700' : h.status === 'booked' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
-                    {h.status}
-                  </span>
-                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {h.status && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${h.status === 'confirmed' ? 'bg-green-100 text-green-700' : h.status === 'booked' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {h.status}
+                    </span>
+                  )}
+                  <button onClick={() => openEditHotel(h)} className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit"><Pencil size={13} /></button>
+                  <button onClick={() => handleDeleteHotel(h.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete"><Trash2 size={13} /></button>
+                </div>
               </div>
 
               {(h.check_in_date || h.check_out_date) && (
@@ -467,9 +653,9 @@ export default function TripDetailPage() {
                     <MapPin size={11} /> Map
                   </a>
                 )}
-                <a href={`https://www.booking.com/search.html?ss=${encodeURIComponent(h.city || h.name)}`} target="_blank" rel="noreferrer"
+                <a href={`https://www.booking.com/search.html?ss=${encodeURIComponent(h.city || h.name)}&checkin=${h.check_in_date||''}&checkout=${h.check_out_date||''}`} target="_blank" rel="noreferrer"
                   className="text-xs flex items-center gap-1 text-indigo-600 hover:underline ml-auto">
-                  <ExternalLink size={11} /> Booking.com
+                  <ExternalLink size={11} /> Book on Booking.com
                 </a>
               </div>
             </div>
@@ -504,7 +690,7 @@ export default function TripDetailPage() {
         <div className="space-y-3">
           {legs.map(l => (
             <div key={l.id} className="card flex items-start gap-4">
-              <div className="text-3xl flex-shrink-0 mt-1">{TRANSPORT_EMOJI[l.type] || '🚐'}</div>
+              <div className="text-3xl flex-shrink-0 mt-0.5">{TRANSPORT_EMOJI[l.type] || '🚐'}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 font-bold text-slate-800 font-display">
                   {l.from_city} <ChevronRight size={14} className="text-slate-400" /> {l.to_city}
@@ -515,10 +701,22 @@ export default function TripDetailPage() {
                   {l.operator && <span>🏢 {l.operator}</span>}
                   {l.booking_ref && <span>📋 {l.booking_ref}</span>}
                 </div>
+                <div className="flex items-center gap-3 mt-2">
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(`${l.type} ${l.from_city} to ${l.to_city} tickets`)}`}
+                    target="_blank" rel="noreferrer"
+                    className="text-xs flex items-center gap-1 text-indigo-600 hover:underline">
+                    <Search size={11} /> Search tickets
+                  </a>
+                </div>
               </div>
-              {l.cost_eur > 0 && (
-                <span className="font-bold text-slate-700 text-sm flex-shrink-0">{l.cost_currency} {l.cost_eur}</span>
-              )}
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                {l.cost_eur > 0 && <span className="font-bold text-slate-700 text-sm">{l.cost_currency} {l.cost_eur}</span>}
+                <div className="flex items-center gap-1">
+                  <button onClick={() => openEditLeg(l)} className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit"><Pencil size={13} /></button>
+                  <button onClick={() => handleDeleteLeg(l.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete"><Trash2 size={13} /></button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -537,6 +735,12 @@ export default function TripDetailPage() {
           {allActivities.length} activit{allActivities.length !== 1 ? 'ies' : 'y'}
           {totalActCost > 0 && <span className="ml-2 font-semibold text-slate-700">· {trip.budget_currency} {totalActCost.toLocaleString()}</span>}
         </p>
+        <button
+          onClick={() => { setSelectedDay(days[0]); setActivityModal(true) }}
+          disabled={days.length === 0}
+          className="btn-primary text-sm py-2 flex items-center gap-1.5">
+          <Plus size={15} /> Add Activity
+        </button>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -555,16 +759,20 @@ export default function TripDetailPage() {
       {filteredActs.length === 0 ? (
         <div className="card text-center py-14">
           <div className="text-4xl mb-3">📍</div>
-          <p className="text-slate-500 text-sm">No activities yet. Add them from the Itinerary tab.</p>
+          <p className="text-slate-500 text-sm">No activities yet. Add them from the Itinerary tab or click above.</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredActs.map(a => (
-            <div key={a.id} className="card hover:shadow-card-hover transition-all">
-              <div className="flex items-start gap-3">
+            <div key={a.id} className="card hover:shadow-card-hover transition-all group relative">
+              <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => openEditAct(a)} className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors bg-white shadow-sm border border-slate-100"><Pencil size={12} /></button>
+                <button onClick={() => handleDeleteAct(a.id, a.day_id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors bg-white shadow-sm border border-slate-100"><Trash2 size={12} /></button>
+              </div>
+              <div className="flex items-start gap-3 pr-16">
                 <span className="text-2xl">{CAT[a.category]?.emoji || '📍'}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-slate-800 text-sm truncate">{a.title}</div>
+                  <div className="font-semibold text-slate-800 text-sm leading-snug">{a.title}</div>
                   <div className="text-xs text-slate-400 mt-0.5">Day {a.day_number} · {format(parseISO(a.day_date), 'MMM d')}</div>
                   {a.location_name && <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin size={9} />{a.location_name}</div>}
                 </div>
@@ -583,7 +791,7 @@ export default function TripDetailPage() {
   // ── Tab: Budget ───────────────────────────────────────────────────────────
   const TabBudget = (
     <div className="space-y-5">
-      {/* Overview card */}
+      {/* Overview */}
       <div className="card bg-gradient-to-br from-sky-50 to-indigo-50 border-sky-100">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -594,23 +802,17 @@ export default function TripDetailPage() {
             <div className="text-sm text-slate-500">Budget</div>
             {editingBudget ? (
               <div className="flex items-center gap-1 justify-end">
-                <input
-                  autoFocus
-                  type="number" min="0"
+                <input autoFocus type="number" min="0"
                   className="w-28 px-2 py-1 text-sm border border-sky-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white text-slate-800 font-bold"
-                  value={newBudget}
-                  onChange={e => setNewBudget(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleUpdateBudget(); if (e.key === 'Escape') setEditingBudget(false) }}
-                />
+                  value={newBudget} onChange={e => setNewBudget(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleUpdateBudget(); if (e.key === 'Escape') setEditingBudget(false) }} />
                 <button onClick={handleUpdateBudget} className="p-1 rounded-lg bg-sky-500 text-white hover:bg-sky-600"><Check size={14} /></button>
                 <button onClick={() => setEditingBudget(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"><X size={14} /></button>
               </div>
             ) : (
-              <button
-                onClick={() => { setNewBudget((trip.budget_total || 0).toString()); setEditingBudget(true) }}
-                className="flex items-center gap-1.5 text-xl font-bold text-slate-700 hover:text-sky-600 transition-colors group"
-                title="Click to edit budget">
-                {trip.budget_currency} {(trip.budget_total || 0).toLocaleString()}
+              <button onClick={() => { setNewBudget((trip.budget_total||0).toString()); setEditingBudget(true) }}
+                className="flex items-center gap-1.5 text-xl font-bold text-slate-700 hover:text-sky-600 transition-colors group" title="Click to edit budget">
+                {trip.budget_currency} {(trip.budget_total||0).toLocaleString()}
                 <Pencil size={13} className="opacity-0 group-hover:opacity-100 transition-opacity text-sky-500" />
               </button>
             )}
@@ -625,32 +827,77 @@ export default function TripDetailPage() {
         </div>
       </div>
 
-      {/* Category breakdown */}
-      {trip.budget_total > 0 && (
-        <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4 font-display">Budget Breakdown</h3>
-          <div className="space-y-3">
-            {BUDGET_CATS.map(cat => {
-              const allocated = trip[cat.key] || 0
-              if (allocated === 0) return null
-              const pct = Math.min(100, (allocated / trip.budget_total) * 100)
-              return (
-                <div key={cat.key}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="flex items-center gap-2 text-slate-700 font-medium">{cat.emoji} {cat.label}</span>
-                    <span className="font-semibold text-slate-800">{trip.budget_currency} {allocated.toLocaleString()}</span>
-                  </div>
-                  <div className="bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
+      {/* Category breakdown with real spending */}
+      <div className="card">
+        <h3 className="font-bold text-slate-800 mb-4 font-display">Category Breakdown</h3>
+        <div className="space-y-4">
+          {BUDGET_CATS.map(cat => {
+            const allocated = trip[cat.key] || 0
+            const spent = cat.expCat ? (spentByExpCat[cat.expCat] || 0) : Object.keys(spentByExpCat).filter(k => !['flight','accommodation','food','transport','activities'].includes(k)).reduce((s, k) => s + spentByExpCat[k], 0)
+            const hasData = allocated > 0 || spent > 0
+            if (!hasData) return null
+            const allocPct = trip.budget_total > 0 ? Math.min(100, (allocated / trip.budget_total) * 100) : 0
+            const spentPct = allocated > 0 ? Math.min(100, (spent / allocated) * 100) : 0
+            return (
+              <div key={cat.key}>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="flex items-center gap-2 text-slate-700 font-medium">{cat.emoji} {cat.label}</span>
+                  <div className="flex items-center gap-2">
+                    {spent > 0 && <span className="text-xs text-slate-500">€{spent.toFixed(0)} spent</span>}
+                    {editCatBudget === cat.key ? (
+                      <div className="flex items-center gap-1">
+                        <input autoFocus type="number" min="0"
+                          className="w-20 px-1.5 py-0.5 text-xs border border-sky-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-400"
+                          value={editCatBudgetVal} onChange={e => setEditCatBudgetVal(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleUpdateCatBudget(); if (e.key === 'Escape') setEditCatBudget(null) }} />
+                        <button onClick={handleUpdateCatBudget} className="p-0.5 rounded bg-sky-500 text-white hover:bg-sky-600"><Check size={11} /></button>
+                        <button onClick={() => setEditCatBudget(null)} className="p-0.5 rounded text-slate-400 hover:bg-slate-100"><X size={11} /></button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditCatBudget(cat.key); setEditCatBudgetVal(allocated.toString()) }}
+                        className="flex items-center gap-1 font-semibold text-slate-700 hover:text-sky-600 transition-colors group text-xs">
+                        {allocated > 0 ? `€${allocated.toLocaleString()}` : 'Set budget'}
+                        <Pencil size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    )}
                   </div>
                 </div>
-              )
-            }).filter(Boolean)}
-          </div>
-        </div>
-      )}
+                {allocated > 0 && (
+                  <div className="relative bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div className="absolute inset-y-0 left-0 bg-sky-100 rounded-full" style={{ width: `${allocPct}%` }} />
+                    <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${spentPct > 90 ? 'bg-red-500' : 'bg-gradient-to-r from-sky-400 to-indigo-500'}`} style={{ width: `${spentPct * allocPct / 100}%` }} />
+                  </div>
+                )}
+              </div>
+            )
+          }).filter(Boolean)}
 
-      {/* Add expense */}
+          {BUDGET_CATS.every(cat => !(trip[cat.key] > 0) && !(cat.expCat ? spentByExpCat[cat.expCat] > 0 : false)) && (
+            <p className="text-sm text-slate-400 text-center py-4">No category budgets set yet. Click on a category amount to set one.</p>
+          )}
+
+          {/* Show categories with spending but no budget */}
+          {BUDGET_CATS.filter(cat => {
+            const spent = cat.expCat ? (spentByExpCat[cat.expCat] || 0) : 0
+            return spent > 0 && !(trip[cat.key] > 0)
+          }).map(cat => {
+            const spent = cat.expCat ? (spentByExpCat[cat.expCat] || 0) : 0
+            return (
+              <div key={`unbudgeted-${cat.key}`} className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-slate-600">{cat.emoji} {cat.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">€{spent.toFixed(0)} spent</span>
+                  <button onClick={() => { setEditCatBudget(cat.key); setEditCatBudgetVal('') }}
+                    className="text-xs text-sky-600 hover:underline font-semibold">Set budget</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Expenses */}
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-800 font-display">Expenses ({transactions.length})</h3>
         <button onClick={() => setExpenseModal(true)} className="btn-primary text-sm py-2 flex items-center gap-1.5">
@@ -674,14 +921,8 @@ export default function TripDetailPage() {
               </div>
               <span className="font-bold text-slate-800 text-sm flex-shrink-0">{t.currency_local} {t.amount_local?.toLocaleString()}</span>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button onClick={() => openEditExpense(t)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit">
-                  <Pencil size={13} />
-                </button>
-                <button onClick={() => handleDeleteExpense(t.id)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete">
-                  <Trash2 size={13} />
-                </button>
+                <button onClick={() => openEditExpense(t)} className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit"><Pencil size={13} /></button>
+                <button onClick={() => handleDeleteExpense(t.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete"><Trash2 size={13} /></button>
               </div>
             </div>
           ))}
@@ -690,13 +931,7 @@ export default function TripDetailPage() {
     </div>
   )
 
-  const tabContent = {
-    itinerary: TabItinerary,
-    hotels: TabHotels,
-    transport: TabTransport,
-    activities: TabActivities,
-    budget: TabBudget,
-  }
+  const tabContent = { itinerary: TabItinerary, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget }
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -725,8 +960,7 @@ export default function TripDetailPage() {
             const params = new URLSearchParams({ destination: dest, checkin: trip.start_date, checkout: trip.end_date })
             navigate(`/booking?${params}`)
           }}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs font-bold hover:from-sky-600 hover:to-indigo-700 transition-all flex-shrink-0"
-          title="Book flights & hotels">
+          className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs font-bold hover:from-sky-600 hover:to-indigo-700 transition-all flex-shrink-0">
           <Plane size={14} /> Book
         </button>
         <button
@@ -741,32 +975,34 @@ export default function TripDetailPage() {
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 sm:flex-1 justify-center min-h-[44px]
-              ${activeTab === tab.id
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-              }`}>
+              ${activeTab === tab.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             <span>{tab.emoji}</span>
             <span className="hidden xs:inline">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Destination alerts strip */}
+      {/* Alerts */}
       <div className="flex gap-3 overflow-x-auto pb-1">
         {alerts.map((a, i) => (
-          <div key={i} className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl">
-            {a}
-          </div>
+          <div key={i} className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl">{a}</div>
         ))}
       </div>
 
-      {/* Active tab content */}
       {tabContent[activeTab]}
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
 
+      {/* Add Activity */}
       {activityModal && (
-        <Modal title={`Add Activity — Day ${selectedDay?.day_number}`} onClose={() => setActivityModal(false)}>
+        <Modal title={`Add Activity${selectedDay ? ` — Day ${selectedDay.day_number}` : ''}`} onClose={() => setActivityModal(false)}>
+          {days.length > 1 && (
+            <FormRow label="Day">
+              <select className="input" value={selectedDay?.id || ''} onChange={e => setSelectedDay(days.find(d => d.id === e.target.value))}>
+                {days.map(d => <option key={d.id} value={d.id}>Day {d.day_number} — {format(parseISO(d.date), 'MMM d')}{d.title ? ` (${d.title})` : ''}</option>)}
+              </select>
+            </FormRow>
+          )}
           <FormRow label="Title *">
             <input className="input" placeholder="e.g. Visit Senso-ji Temple" value={actForm.title} onChange={e => setActForm(f => ({...f, title: e.target.value}))} />
           </FormRow>
@@ -796,6 +1032,39 @@ export default function TripDetailPage() {
         </Modal>
       )}
 
+      {/* Edit Activity */}
+      {editActModal && (
+        <Modal title="Edit Activity" onClose={() => setEditActModal(false)}>
+          <FormRow label="Title *">
+            <input className="input" value={editActForm.title} onChange={e => setEditActForm(f => ({...f, title: e.target.value}))} />
+          </FormRow>
+          <FormRow label="Category">
+            <select className="input" value={editActForm.category} onChange={e => setEditActForm(f => ({...f, category: e.target.value}))}>
+              {Object.entries(CAT).map(([k,v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
+            </select>
+          </FormRow>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormRow label="Start time">
+              <input type="time" className="input" value={editActForm.start_time} onChange={e => setEditActForm(f => ({...f, start_time: e.target.value}))} />
+            </FormRow>
+            <FormRow label="Cost">
+              <input type="number" className="input" value={editActForm.cost} onChange={e => setEditActForm(f => ({...f, cost: e.target.value}))} />
+            </FormRow>
+          </div>
+          <FormRow label="Location">
+            <input className="input" value={editActForm.location} onChange={e => setEditActForm(f => ({...f, location: e.target.value}))} />
+          </FormRow>
+          <FormRow label="Notes">
+            <textarea className="input resize-none" rows={2} value={editActForm.notes} onChange={e => setEditActForm(f => ({...f, notes: e.target.value}))} />
+          </FormRow>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setEditActModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={handleUpdateAct} disabled={saving} className="btn-primary flex-1">{saving ? 'Saving...' : 'Save Changes'}</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Hotel */}
       {hotelModal && (
         <Modal title="Add Hotel / Accommodation" onClose={() => setHotelModal(false)}>
           <FormRow label="Hotel name *">
@@ -805,16 +1074,23 @@ export default function TripDetailPage() {
             <FormRow label="City">
               <input className="input" placeholder="Tokyo" value={hotelForm.city} onChange={e => setHotelForm(f => ({...f, city: e.target.value}))} />
             </FormRow>
-            <FormRow label="Phone">
-              <input className="input" placeholder="+81 3-xxxx" value={hotelForm.phone} onChange={e => setHotelForm(f => ({...f, phone: e.target.value}))} />
+            <FormRow label="Status">
+              <select className="input" value={hotelForm.status} onChange={e => setHotelForm(f => ({...f, status: e.target.value}))}>
+                {HOTEL_STATUSES.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+              </select>
             </FormRow>
           </div>
           <FormRow label="Address">
             <input className="input" value={hotelForm.address} onChange={e => setHotelForm(f => ({...f, address: e.target.value}))} />
           </FormRow>
-          <FormRow label="Website">
-            <input className="input" placeholder="https://..." value={hotelForm.website} onChange={e => setHotelForm(f => ({...f, website: e.target.value}))} />
-          </FormRow>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormRow label="Phone">
+              <input className="input" value={hotelForm.phone} onChange={e => setHotelForm(f => ({...f, phone: e.target.value}))} />
+            </FormRow>
+            <FormRow label="Website">
+              <input className="input" placeholder="https://..." value={hotelForm.website} onChange={e => setHotelForm(f => ({...f, website: e.target.value}))} />
+            </FormRow>
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <FormRow label="Check-in">
               <input type="date" className="input" value={hotelForm.check_in_date} onChange={e => setHotelForm(f => ({...f, check_in_date: e.target.value}))} />
@@ -848,10 +1124,63 @@ export default function TripDetailPage() {
         </Modal>
       )}
 
+      {/* Edit Hotel */}
+      {editHotelModal && (
+        <Modal title="Edit Hotel" onClose={() => setEditHotelModal(false)}>
+          <FormRow label="Hotel name *">
+            <input className="input" value={editHotelForm.name} onChange={e => setEditHotelForm(f => ({...f, name: e.target.value}))} />
+          </FormRow>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormRow label="City">
+              <input className="input" value={editHotelForm.city} onChange={e => setEditHotelForm(f => ({...f, city: e.target.value}))} />
+            </FormRow>
+            <FormRow label="Status">
+              <select className="input" value={editHotelForm.status} onChange={e => setEditHotelForm(f => ({...f, status: e.target.value}))}>
+                {HOTEL_STATUSES.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+              </select>
+            </FormRow>
+          </div>
+          <FormRow label="Address">
+            <input className="input" value={editHotelForm.address} onChange={e => setEditHotelForm(f => ({...f, address: e.target.value}))} />
+          </FormRow>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormRow label="Check-in">
+              <input type="date" className="input" value={editHotelForm.check_in_date} onChange={e => setEditHotelForm(f => ({...f, check_in_date: e.target.value}))} />
+            </FormRow>
+            <FormRow label="Check-out">
+              <input type="date" className="input" value={editHotelForm.check_out_date} onChange={e => setEditHotelForm(f => ({...f, check_out_date: e.target.value}))} />
+            </FormRow>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <FormRow label="Cost per night">
+                <input type="number" className="input" value={editHotelForm.cost_per_night} onChange={e => setEditHotelForm(f => ({...f, cost_per_night: e.target.value}))} />
+              </FormRow>
+            </div>
+            <FormRow label="Currency">
+              <select className="input" value={editHotelForm.cost_currency} onChange={e => setEditHotelForm(f => ({...f, cost_currency: e.target.value}))}>
+                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+              </select>
+            </FormRow>
+          </div>
+          <FormRow label="Booking reference">
+            <input className="input" value={editHotelForm.booking_ref} onChange={e => setEditHotelForm(f => ({...f, booking_ref: e.target.value}))} />
+          </FormRow>
+          <FormRow label="Notes">
+            <textarea className="input resize-none" rows={2} value={editHotelForm.notes} onChange={e => setEditHotelForm(f => ({...f, notes: e.target.value}))} />
+          </FormRow>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setEditHotelModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={handleUpdateHotel} disabled={saving} className="btn-primary flex-1">{saving ? 'Saving...' : 'Save Changes'}</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Transport */}
       {transportModal && (
         <Modal title="Add Transport" onClose={() => setTransportModal(false)}>
           <FormRow label="Type">
-            <div className="grid grid-cols-4 xs:grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {Object.entries(TRANSPORT_EMOJI).slice(0, 8).map(([k, emoji]) => (
                 <button key={k} onClick={() => setLegForm(f => ({...f, type: k}))}
                   className={`p-2 rounded-xl border text-center text-sm transition-all ${legForm.type === k ? 'border-sky-400 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -912,13 +1241,77 @@ export default function TripDetailPage() {
         </Modal>
       )}
 
+      {/* Edit Transport */}
+      {editLegModal && (
+        <Modal title="Edit Transport" onClose={() => setEditLegModal(false)}>
+          <FormRow label="Type">
+            <div className="grid grid-cols-4 gap-2">
+              {Object.entries(TRANSPORT_EMOJI).slice(0, 8).map(([k, emoji]) => (
+                <button key={k} onClick={() => setEditLegForm(f => ({...f, type: k}))}
+                  className={`p-2 rounded-xl border text-center text-sm transition-all ${editLegForm.type === k ? 'border-sky-400 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <div className="text-xl">{emoji}</div>
+                  <div className="text-[9px] text-slate-500 mt-0.5 capitalize">{k.replace('_', ' ')}</div>
+                </button>
+              ))}
+            </div>
+          </FormRow>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormRow label="From city *">
+              <input className="input" value={editLegForm.from_city} onChange={e => setEditLegForm(f => ({...f, from_city: e.target.value}))} />
+            </FormRow>
+            <FormRow label="To city *">
+              <input className="input" value={editLegForm.to_city} onChange={e => setEditLegForm(f => ({...f, to_city: e.target.value}))} />
+            </FormRow>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-3 sm:col-span-1">
+              <FormRow label="Date">
+                <input type="date" className="input" value={editLegForm.departure_date} onChange={e => setEditLegForm(f => ({...f, departure_date: e.target.value}))} />
+              </FormRow>
+            </div>
+            <FormRow label="Departs">
+              <input type="time" className="input" value={editLegForm.departure_time} onChange={e => setEditLegForm(f => ({...f, departure_time: e.target.value}))} />
+            </FormRow>
+            <FormRow label="Arrives">
+              <input type="time" className="input" value={editLegForm.arrival_time} onChange={e => setEditLegForm(f => ({...f, arrival_time: e.target.value}))} />
+            </FormRow>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <FormRow label="Cost">
+                <input type="number" className="input" value={editLegForm.cost} onChange={e => setEditLegForm(f => ({...f, cost: e.target.value}))} />
+              </FormRow>
+            </div>
+            <FormRow label="Currency">
+              <select className="input" value={editLegForm.cost_currency} onChange={e => setEditLegForm(f => ({...f, cost_currency: e.target.value}))}>
+                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+              </select>
+            </FormRow>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormRow label="Operator">
+              <input className="input" value={editLegForm.operator} onChange={e => setEditLegForm(f => ({...f, operator: e.target.value}))} />
+            </FormRow>
+            <FormRow label="Booking ref">
+              <input className="input" value={editLegForm.booking_ref} onChange={e => setEditLegForm(f => ({...f, booking_ref: e.target.value}))} />
+            </FormRow>
+          </div>
+          <FormRow label="Notes">
+            <textarea className="input resize-none" rows={2} value={editLegForm.notes} onChange={e => setEditLegForm(f => ({...f, notes: e.target.value}))} />
+          </FormRow>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setEditLegModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={handleUpdateLeg} disabled={saving} className="btn-primary flex-1">{saving ? 'Saving...' : 'Save Changes'}</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Expense */}
       {expenseModal && (
         <Modal title="Log Expense" onClose={() => setExpenseModal(false)}>
           <FormRow label="Category">
             <select className="input" value={expForm.category} onChange={e => setExpForm(f => ({...f, category: e.target.value}))}>
-              {['flight','accommodation','food','transport','activities','shopping','visa','insurance','communication','other'].map(c => (
-                <option key={c} value={c}>{CAT[c]?.emoji || '💼'} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
+              {EXP_CATS.map(c => <option key={c} value={c}>{CAT[c]?.emoji || '💼'} {c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
             </select>
           </FormRow>
           <FormRow label="Description *">
@@ -949,13 +1342,12 @@ export default function TripDetailPage() {
         </Modal>
       )}
 
+      {/* Edit Expense */}
       {editExpModal && (
         <Modal title="Edit Expense" onClose={() => setEditExpModal(false)}>
           <FormRow label="Category">
             <select className="input" value={editExpForm.category} onChange={e => setEditExpForm(f => ({...f, category: e.target.value}))}>
-              {['flight','accommodation','food','transport','activities','shopping','visa','insurance','communication','other'].map(c => (
-                <option key={c} value={c}>{CAT[c]?.emoji || '💼'} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
+              {EXP_CATS.map(c => <option key={c} value={c}>{CAT[c]?.emoji || '💼'} {c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
             </select>
           </FormRow>
           <FormRow label="Description *">
