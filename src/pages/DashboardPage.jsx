@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useTripsStore } from '../stores/tripsStore'
 import { supabase } from '../lib/supabase'
-import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass, Megaphone } from 'lucide-react'
+import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass, Megaphone, Tag } from 'lucide-react'
 import { TRIP_STATUSES } from '../lib/constants'
 import { format } from 'date-fns'
 
@@ -201,6 +201,34 @@ export default function DashboardPage() {
           </Link>
         </div>
       )}
+
+      {/* Deals banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-5 text-white">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 text-2xl">🎉</div>
+            <div>
+              <p className="font-bold text-base font-display">Exclusive Travel Deals</p>
+              <p className="text-white/75 text-sm mt-0.5">Save on hotels, flights and experiences</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {[
+                  { label: '20% off hotels', color: 'bg-blue-400/30' },
+                  { label: '10% off hostels', color: 'bg-purple-400/30' },
+                  { label: 'Tours from €10', color: 'bg-amber-400/30' },
+                ].map(d => (
+                  <span key={d.label} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full text-white ${d.color}`}>
+                    {d.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <Link to="/deals"
+            className="flex-shrink-0 flex items-center gap-1.5 bg-white text-indigo-700 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-white/90 transition-all shadow whitespace-nowrap">
+            <Tag size={14} /> View all deals
+          </Link>
+        </div>
+      </div>
 
       {/* Travel Inspiration */}
       <div>

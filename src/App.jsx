@@ -16,6 +16,7 @@ import ExplorePage from './pages/ExplorePage'
 import ProfilePage from './pages/ProfilePage'
 import SupportPage from './pages/SupportPage'
 import BookingPage from './pages/BookingPage'
+import DealsPage from './pages/DealsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function PrivateRoute({ children }) {
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/profile"   element={<ProfilePage />} />
         <Route path="/support"   element={<SupportPage />} />
         <Route path="/booking"   element={<BookingPage />} />
+        <Route path="/deals"     element={<DealsPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

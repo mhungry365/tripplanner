@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane } from 'lucide-react'
+import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag } from 'lucide-react'
 import { APP_NAME } from '../../lib/constants'
 import toast from 'react-hot-toast'
 
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/explore',   label: 'Explore',   icon: Compass },
   { path: '/trips',     label: 'My Trips',  icon: Map },
   { path: '/booking',   label: 'Booking',   icon: Plane },
+  { path: '/deals',     label: 'Deals 🎉',  icon: Tag },
   { path: '/profile',   label: 'Profile',   icon: User },
 ]
 
