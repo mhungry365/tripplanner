@@ -74,11 +74,11 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome banner */}
-      <div className="bg-gradient-to-br from-sky-600 via-indigo-600 to-violet-700 rounded-3xl p-8 text-white relative overflow-hidden">
-        <div className="absolute right-6 top-4 text-6xl opacity-20 animate-float">🌍</div>
+      <div className="bg-gradient-to-br from-sky-600 via-indigo-600 to-violet-700 rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-white relative overflow-hidden">
+        <div className="absolute right-4 sm:right-6 top-4 text-5xl sm:text-6xl opacity-20 animate-float hidden xs:block">🌍</div>
         <div className="relative">
           <p className="text-white/70 text-sm font-medium mb-1">{greeting} 👋</p>
-          <h1 className="text-3xl font-bold font-display mb-2">{profile?.full_name?.split(' ')[0] || 'Traveller'}!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display mb-2">{profile?.full_name?.split(' ')[0] || 'Traveller'}!</h1>
           <p className="text-white/60 text-sm mb-5">
             {trips.length === 0
               ? "You haven't planned any trips yet. Let's change that!"
@@ -98,7 +98,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {stats.map(s => {
           const Icon = s.icon
           return (
@@ -203,20 +203,20 @@ export default function DashboardPage() {
       )}
 
       {/* Deals banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-5 text-white">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 text-2xl">🎉</div>
-            <div>
-              <p className="font-bold text-base font-display">Exclusive Travel Deals</p>
-              <p className="text-white/75 text-sm mt-0.5">Save on hotels, flights and experiences</p>
-              <div className="flex flex-wrap gap-2 mt-2">
+      <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-5 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 text-xl sm:text-2xl">🎉</div>
+            <div className="min-w-0">
+              <p className="font-bold text-base font-display leading-tight">Exclusive Travel Deals</p>
+              <p className="text-white/75 text-xs sm:text-sm mt-0.5">Save on hotels, flights and experiences</p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
                 {[
-                  { label: '20% off hotels', color: 'bg-blue-400/30' },
+                  { label: '20% off hotels',  color: 'bg-blue-400/30' },
                   { label: '10% off hostels', color: 'bg-purple-400/30' },
-                  { label: 'Tours from €10', color: 'bg-amber-400/30' },
+                  { label: 'Tours from €10',  color: 'bg-amber-400/30' },
                 ].map(d => (
-                  <span key={d.label} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full text-white ${d.color}`}>
+                  <span key={d.label} className={`text-xs font-semibold px-2 py-0.5 rounded-full text-white ${d.color} whitespace-nowrap`}>
                     {d.label}
                   </span>
                 ))}
@@ -224,7 +224,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <Link to="/deals"
-            className="flex-shrink-0 flex items-center gap-1.5 bg-white text-indigo-700 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-white/90 transition-all shadow whitespace-nowrap">
+            className="flex items-center justify-center gap-1.5 bg-white text-indigo-700 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-white/90 transition-all shadow min-h-[44px] sm:flex-shrink-0 sm:whitespace-nowrap">
             <Tag size={14} /> View all deals
           </Link>
         </div>
@@ -233,9 +233,9 @@ export default function DashboardPage() {
       {/* Travel Inspiration */}
       <div>
         <h2 className="section-title mb-4">Travel Inspiration</h2>
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {INSPIRATION.map(ins => (
-            <Link key={ins.title} to="/explore" className="card-hover p-5 flex items-start gap-4">
+            <Link key={ins.title} to="/explore" className="card-hover p-4 sm:p-5 flex items-start gap-3 sm:gap-4 min-h-[44px]">
               <div className="text-4xl flex-shrink-0">{ins.emoji}</div>
               <div>
                 <div className="font-bold text-slate-800 font-display mb-1">{ins.title}</div>

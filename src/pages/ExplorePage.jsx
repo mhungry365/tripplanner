@@ -74,10 +74,10 @@ export default function ExplorePage() {
       </div>
 
       {/* Continent tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
         {CONTINENTS.map(c => (
           <button key={c.key} onClick={() => setContinent(c.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[44px]
               ${continent === c.key
                 ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md'
                 : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -89,9 +89,9 @@ export default function ExplorePage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-64 shimmer rounded-2xl" />
+            <div key={i} className="h-48 sm:h-64 shimmer rounded-2xl" />
           ))}
         </div>
       ) : destinations.length === 0 ? (
@@ -100,10 +100,10 @@ export default function ExplorePage() {
           <p className="text-slate-500 font-medium">No destinations found</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
           {destinations.map(d => (
             <button key={d.id} onClick={() => setSelected(d)}
-              className="relative h-64 rounded-2xl overflow-hidden group cursor-pointer text-left shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              className="relative h-48 sm:h-64 rounded-2xl overflow-hidden group cursor-pointer text-left shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                 style={{

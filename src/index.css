@@ -4,13 +4,14 @@
 @tailwind utilities;
 
 @layer base {
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html { scroll-behavior: smooth; }
   body {
     font-family: 'DM Sans', sans-serif;
     background: #f8faff;
     color: #1e293b;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
   h1,h2,h3,h4,h5,h6 { font-family: 'Plus Jakarta Sans', sans-serif; }
 }
@@ -56,6 +57,17 @@
 
 /* Smooth page transitions */
 .page-enter { animation: fadeIn 0.3s ease-out; }
+
+/* Hide scrollbar but allow scroll */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Sidebar slide-in animation */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.sidebar-slide { animation: slideInLeft 0.25s ease-out; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

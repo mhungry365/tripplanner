@@ -199,10 +199,10 @@ export default function AppLayout() {
 
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-72 bg-white h-full flex flex-col shadow-xl">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <aside className="relative w-72 bg-white h-full flex flex-col shadow-2xl sidebar-slide">
             <button onClick={() => setSidebarOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:bg-slate-100">
+              className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center">
               <X size={18} />
             </button>
             <Sidebar />

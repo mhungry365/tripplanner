@@ -365,7 +365,7 @@ export default function TripDetailPage() {
           </button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           {hotels.map(h => (
             <div key={h.id} className="card space-y-3">
               <div className="flex items-start gap-3">
@@ -645,16 +645,16 @@ export default function TripDetailPage() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto scrollbar-hide -mx-1 px-1">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-1 justify-center
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 sm:flex-1 justify-center min-h-[44px]
               ${activeTab === tab.id
                 ? 'bg-white text-slate-800 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
               }`}>
             <span>{tab.emoji}</span>
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden xs:inline">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -683,7 +683,7 @@ export default function TripDetailPage() {
               {Object.entries(CAT).map(([k,v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
             </select>
           </FormRow>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <FormRow label="Start time">
               <input type="time" className="input" value={actForm.start_time} onChange={e => setActForm(f => ({...f, start_time: e.target.value}))} />
             </FormRow>
@@ -709,7 +709,7 @@ export default function TripDetailPage() {
           <FormRow label="Hotel name *">
             <input className="input" placeholder="e.g. Park Hyatt Tokyo" value={hotelForm.name} onChange={e => setHotelForm(f => ({...f, name: e.target.value}))} />
           </FormRow>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <FormRow label="City">
               <input className="input" placeholder="Tokyo" value={hotelForm.city} onChange={e => setHotelForm(f => ({...f, city: e.target.value}))} />
             </FormRow>
@@ -723,7 +723,7 @@ export default function TripDetailPage() {
           <FormRow label="Website">
             <input className="input" placeholder="https://..." value={hotelForm.website} onChange={e => setHotelForm(f => ({...f, website: e.target.value}))} />
           </FormRow>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <FormRow label="Check-in">
               <input type="date" className="input" value={hotelForm.check_in_date} onChange={e => setHotelForm(f => ({...f, check_in_date: e.target.value}))} />
             </FormRow>
@@ -759,7 +759,7 @@ export default function TripDetailPage() {
       {transportModal && (
         <Modal title="Add Transport" onClose={() => setTransportModal(false)}>
           <FormRow label="Type">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 xs:grid-cols-4 gap-2">
               {Object.entries(TRANSPORT_EMOJI).slice(0, 8).map(([k, emoji]) => (
                 <button key={k} onClick={() => setLegForm(f => ({...f, type: k}))}
                   className={`p-2 rounded-xl border text-center text-sm transition-all ${legForm.type === k ? 'border-sky-400 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -769,7 +769,7 @@ export default function TripDetailPage() {
               ))}
             </div>
           </FormRow>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <FormRow label="From city *">
               <input className="input" placeholder="Dublin" value={legForm.from_city} onChange={e => setLegForm(f => ({...f, from_city: e.target.value}))} />
             </FormRow>
@@ -802,7 +802,7 @@ export default function TripDetailPage() {
               </select>
             </FormRow>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <FormRow label="Operator">
               <input className="input" placeholder="Aer Lingus" value={legForm.operator} onChange={e => setLegForm(f => ({...f, operator: e.target.value}))} />
             </FormRow>

@@ -99,7 +99,7 @@ export default function ProfilePage() {
       {/* Profile header card */}
       <div className="card overflow-hidden p-0">
         {/* Cover photo */}
-        <div className="h-32 relative overflow-hidden group">
+        <div className="h-28 sm:h-36 relative overflow-hidden group">
           {profile?.cover_image_url ? (
             <img src={profile.cover_image_url} alt="Cover" className="w-full h-full object-cover" />
           ) : (
@@ -186,7 +186,7 @@ export default function ProfilePage() {
           <h3 className="font-bold text-slate-800 font-display text-lg flex items-center gap-2">
             <Settings size={16} /> Edit Profile
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Full name</label>
               <input className="input" value={form.full_name} onChange={e => setField('full_name', e.target.value)} />
@@ -201,7 +201,7 @@ export default function ProfilePage() {
             <textarea className="input resize-none" rows={2} placeholder="Tell us about yourself..."
               value={form.bio} onChange={e => setField('bio', e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Nationality</label>
               <input className="input" placeholder="Irish" value={form.nationality} onChange={e => setField('nationality', e.target.value)} />
@@ -259,9 +259,9 @@ export default function ProfilePage() {
             </Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
             {trips.map(trip => (
-              <Link key={trip.id} to={`/trips/${trip.id}`} className="card-hover p-5">
+              <Link key={trip.id} to={`/trips/${trip.id}`} className="card-hover p-4 sm:p-5">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-bold text-slate-800 font-display leading-tight">{trip.title}</h3>
                   <span className={`badge ml-2 flex-shrink-0 ${TRIP_STATUSES[trip.status]?.color}`}>

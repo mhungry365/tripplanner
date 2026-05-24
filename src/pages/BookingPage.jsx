@@ -286,10 +286,10 @@ export default function BookingPage() {
             <label className="label">Passengers</label>
             <div className="flex items-center gap-2">
               <button onClick={() => setPassengers(p => Math.max(1, p - 1))}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold">−</button>
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold min-h-[44px] min-w-[44px]">−</button>
               <span className="w-8 text-center font-semibold text-slate-800">{passengers}</span>
               <button onClick={() => setPassengers(p => Math.min(9, p + 1))}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold">+</button>
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold min-h-[44px] min-w-[44px]">+</button>
             </div>
           </div>
           <div>
@@ -302,16 +302,16 @@ export default function BookingPage() {
           </div>
         </div>
 
-        <button onClick={searchFlights} className="btn-primary w-full py-3 text-base font-bold flex items-center justify-center gap-2">
+        <button onClick={searchFlights} className="btn-primary w-full py-3 text-sm sm:text-base font-bold flex items-center justify-center gap-2 min-h-[48px]">
           <Plane size={18} /> Search Flights on Google Flights
         </button>
 
         <div>
           <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Also search on</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:flex sm:flex-wrap gap-2">
             {FLIGHT_PARTNERS.slice(1).map(p => (
               <button key={p.name} onClick={() => openPartnerFlight(p)}
-                className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${p.bg}`}>
+                className={`text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl border transition-colors min-h-[44px] ${p.bg}`}>
                 {p.name}
               </button>
             ))}
@@ -345,34 +345,34 @@ export default function BookingPage() {
             <label className="label">Guests</label>
             <div className="flex items-center gap-2">
               <button onClick={() => setGuests(g => Math.max(1, g - 1))}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold">−</button>
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold min-h-[44px] min-w-[44px]">−</button>
               <span className="w-8 text-center font-semibold text-slate-800">{guests}</span>
               <button onClick={() => setGuests(g => Math.min(20, g + 1))}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold">+</button>
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold min-h-[44px] min-w-[44px]">+</button>
             </div>
           </div>
           <div>
             <label className="label">Rooms</label>
             <div className="flex items-center gap-2">
               <button onClick={() => setRooms(r => Math.max(1, r - 1))}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold">−</button>
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold min-h-[44px] min-w-[44px]">−</button>
               <span className="w-8 text-center font-semibold text-slate-800">{rooms}</span>
               <button onClick={() => setRooms(r => Math.min(10, r + 1))}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold">+</button>
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold min-h-[44px] min-w-[44px]">+</button>
             </div>
           </div>
         </div>
 
-        <button onClick={searchHotels} className="w-full py-3 text-base font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 transition-all flex items-center justify-center gap-2 shadow-md">
+        <button onClick={searchHotels} className="w-full py-3 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 transition-all flex items-center justify-center gap-2 shadow-md min-h-[48px]">
           <Hotel size={18} /> Search Hotels on Booking.com
         </button>
 
         <div>
           <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Also search on</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 xs:grid-cols-2 sm:flex sm:flex-wrap gap-2">
             {HOTEL_PARTNERS.slice(1).map(p => (
               <button key={p.name} onClick={() => openPartnerHotel(p)}
-                className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${p.bg}`}>
+                className={`text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl border transition-colors min-h-[44px] ${p.bg}`}>
                 {p.name}
               </button>
             ))}
