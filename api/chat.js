@@ -6,34 +6,41 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages array required' })
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' })
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey || apiKey === 'pending') {
+    return res.status(503).json({ error: 'AI assistant is not configured yet. Please try again later.' })
   }
 
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }))
+
   try {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: 'You are an expert travel assistant for Holidater app. Help users find best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful. Always suggest checking official booking sites for real-time prices. Use bullet points and short paragraphs to keep responses scannable. Keep replies under 250 words.',
-        messages,
-      }),
-    })
+    const upstream = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: 'You are an expert travel assistant for Holidater app. Help users find best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful. Format responses clearly with bullet points where appropriate.' }],
+          },
+          contents,
+        }),
+      }
+    )
 
     const data = await upstream.json()
 
     if (!upstream.ok) {
-      return res.status(upstream.status).json({ error: data.error?.message || 'Upstream API error' })
+      return res.status(upstream.status).json({ error: data.error?.message || 'Gemini API error' })
     }
 
-    res.status(200).json(data)
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+      || 'Sorry, I could not get a response. Please try again.'
+
+    res.status(200).json({ text })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

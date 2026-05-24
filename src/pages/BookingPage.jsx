@@ -68,7 +68,7 @@ function AIChat() {
       }
 
       const data = await res.json()
-      const reply = data.content?.[0]?.text || 'Sorry, I could not get a response.'
+      const reply = data.text || 'Sorry, I could not get a response.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (err) {
       toast.error('AI error: ' + err.message)
