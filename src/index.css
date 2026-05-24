@@ -52,8 +52,8 @@
   .section-title {
     @apply text-2xl font-bold text-slate-800 font-display;
   }
-  .tripplanner-gradient-text {
-    @apply bg-gradient-tripplanner bg-clip-text text-transparent;
+  .holidater-gradient-text {
+    @apply bg-gradient-holidater bg-clip-text text-transparent;
   }
 }
 
