@@ -66,5 +66,13 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addBase }) {
+      addBase({
+        'img':   { maxWidth: '100%', height: 'auto' },
+        'video': { maxWidth: '100%' },
+        'table': { maxWidth: '100%', overflowX: 'auto', display: 'block' },
+      })
+    }
+  ],
 }

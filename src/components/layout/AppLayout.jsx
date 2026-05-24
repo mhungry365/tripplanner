@@ -210,7 +210,7 @@ export default function AppLayout() {
         </div>
       )}
 
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen min-w-0 overflow-x-hidden">
         <header className={`bg-white border-b border-slate-100 px-4 sm:px-6 py-3 flex items-center gap-3 sticky top-0 z-20 transition-shadow duration-200 ${headerShadow ? 'shadow-md' : ''}`}>
           {/* Hamburger (mobile) */}
           <button onClick={() => setSidebarOpen(true)}
@@ -253,7 +253,7 @@ export default function AppLayout() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                <div className="absolute right-0 top-14 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                     <span className="font-semibold text-slate-800 text-sm">Notifications</span>
                     {unreadCount > 0 && (
@@ -307,7 +307,7 @@ export default function AppLayout() {
               </button>
 
               {avatarOpen && (
-                <div className="absolute right-0 top-14 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden py-1">
+                <div className="absolute right-0 top-14 w-48 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden py-1">
                   <div className="px-4 py-3 border-b border-slate-100">
                     <p className="text-sm font-semibold text-slate-800 truncate">{profile?.full_name}</p>
                     <p className="text-xs text-slate-400 truncate capitalize">{profile?.role?.replace('_', ' ')}</p>
@@ -339,7 +339,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
           <div className="page-enter">
             <Outlet />
           </div>

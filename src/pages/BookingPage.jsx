@@ -102,7 +102,7 @@ function AIChat() {
   }
 
   return (
-    <div className="card space-y-4">
+    <div className="card space-y-4 overflow-hidden">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-slate-800 flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
@@ -142,7 +142,7 @@ function AIChat() {
                   <Bot size={12} className="text-white" />
                 </div>
               )}
-              <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap
+              <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words
                 ${m.role === 'user'
                   ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-tr-sm'
                   : 'bg-slate-100 text-slate-700 rounded-tl-sm'
