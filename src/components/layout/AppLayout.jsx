@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag } from 'lucide-react'
+import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag, Search, Settings, ChevronDown } from 'lucide-react'
 import { APP_NAME } from '../../lib/constants'
 import toast from 'react-hot-toast'
 
@@ -28,7 +28,10 @@ export default function AppLayout() {
   const location  = useLocation()
   const navigate  = useNavigate()
   const { profile, signOut } = useAuthStore()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen,  setSidebarOpen]  = useState(false)
+  const [avatarOpen,   setAvatarOpen]   = useState(false)
+  const [headerShadow, setHeaderShadow] = useState(false)
+  const avatarRef = useRef(null)
 
   // Notifications
   const [notifications, setNotifications] = useState([])
@@ -71,13 +74,21 @@ export default function AppLayout() {
     return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
+      if (notifRef.current  && !notifRef.current.contains(e.target))  setNotifOpen(false)
+      if (avatarRef.current && !avatarRef.current.contains(e.target)) setAvatarOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Header shadow on scroll
+  useEffect(() => {
+    const handler = () => setHeaderShadow(window.scrollY > 4)
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
   }, [])
 
   const markRead = async (notif) => {
@@ -200,43 +211,57 @@ export default function AppLayout() {
       )}
 
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
-        <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+        <header className={`bg-white border-b border-slate-100 px-4 sm:px-6 py-3 flex items-center gap-3 sticky top-0 z-20 transition-shadow duration-200 ${headerShadow ? 'shadow-md' : ''}`}>
+          {/* Hamburger (mobile) */}
           <button onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+            className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0">
             <Menu size={20} />
           </button>
-          <div className="hidden lg:block">
+
+          {/* Page title (desktop) */}
+          <div className="hidden lg:block flex-shrink-0">
             <h1 className="text-lg font-bold text-slate-800 font-display">
-              {navItems.find(n => location.pathname.startsWith(n.path))?.label || 'Holidater'}
+              {navItems.find(n => location.pathname.startsWith(n.path))?.label?.replace(' 🎉','') || 'Holidater'}
             </h1>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
+          {/* Search bar (desktop center) */}
+          <div className="hidden sm:flex flex-1 max-w-sm mx-auto">
+            <div className="relative w-full">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400 placeholder:text-slate-400 transition-all"
+                placeholder="Search destinations, trips..."
+                onKeyDown={e => { if (e.key === 'Enter' && e.target.value.trim()) { navigate(`/explore?q=${encodeURIComponent(e.target.value.trim())}`); e.target.value = '' } }}
+              />
+            </div>
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             {/* Notification bell */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setNotifOpen(v => !v)}
-                className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors">
+                className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+                  <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                <div className="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                     <span className="font-semibold text-slate-800 text-sm">Notifications</span>
                     {unreadCount > 0 && (
-                      <button onClick={markAllRead}
-                        className="text-xs text-sky-600 hover:text-sky-700 font-semibold">
+                      <button onClick={markAllRead} className="text-xs text-sky-600 hover:text-sky-700 font-semibold">
                         Mark all read
                       </button>
                     )}
                   </div>
-
                   <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
                     {notifications.length === 0 ? (
                       <div className="text-center py-10">
@@ -261,9 +286,56 @@ export default function AppLayout() {
               )}
             </div>
 
-            <Link to="/trips/new" className="btn-primary text-sm py-2 hidden sm:flex items-center gap-1.5">
-              <Plus size={16} /> New Trip
+            {/* New Trip button */}
+            <Link to="/trips/new" className="btn-primary text-sm py-2 px-3 hidden sm:flex items-center gap-1.5 min-h-[40px]">
+              <Plus size={15} /> New Trip
             </Link>
+
+            {/* Avatar dropdown */}
+            <div className="relative" ref={avatarRef}>
+              <button onClick={() => setAvatarOpen(v => !v)}
+                className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-slate-100 transition-colors min-h-[44px]">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  {profile?.avatar_url
+                    ? <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
+                        {profile?.full_name?.[0]?.toUpperCase() || 'W'}
+                      </div>
+                  }
+                </div>
+                <ChevronDown size={13} className="text-slate-400 hidden sm:block" />
+              </button>
+
+              {avatarOpen && (
+                <div className="absolute right-0 top-14 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden py-1">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{profile?.full_name}</p>
+                    <p className="text-xs text-slate-400 truncate capitalize">{profile?.role?.replace('_', ' ')}</p>
+                  </div>
+                  {[
+                    { to: '/profile', icon: User,       label: 'My Profile' },
+                    { to: '/profile', icon: Settings,   label: 'Settings' },
+                    { to: '/support', icon: HelpCircle, label: 'Help & Support' },
+                  ].map(item => {
+                    const Icon = item.icon
+                    return (
+                      <Link key={item.label} to={item.to} onClick={() => setAvatarOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <Icon size={15} className="text-slate-400" />
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                  <div className="border-t border-slate-100 mt-1 pt-1">
+                    <button onClick={handleSignOut}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left">
+                      <LogOut size={15} />
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

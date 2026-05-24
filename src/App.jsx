@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
 import AppLayout from './components/layout/AppLayout'
 import AuthLayout from './components/layout/AuthLayout'
+import CookieConsent from './components/CookieConsent'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -17,6 +18,8 @@ import ProfilePage from './pages/ProfilePage'
 import SupportPage from './pages/SupportPage'
 import BookingPage from './pages/BookingPage'
 import DealsPage from './pages/DealsPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsPage from './pages/TermsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function PrivateRoute({ children }) {
@@ -51,9 +54,13 @@ export default function App() {
   useEffect(() => { initialize() }, [])
 
   return (
+    <>
+    <CookieConsent />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms"   element={<TermsPage />} />
 
       <Route element={<AuthLayout />}>
         <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -75,5 +82,6 @@ export default function App() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </>
   )
 }
