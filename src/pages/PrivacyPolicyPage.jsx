@@ -5,7 +5,7 @@ const SECTIONS = [
   {
     id: 'what-we-collect',
     title: '1. What We Collect',
-    content: `We collect the following types of personal data when you use Holidater:
+    content: `We collect the following types of personal data when you use Wanderwall:
 
 **Account Information:** Full name, email address, password (hashed), profile photo, and optional profile details (bio, home city, nationality).
 
@@ -22,7 +22,7 @@ const SECTIONS = [
     title: '2. How We Use Your Data',
     content: `We use your personal data to:
 
-• Provide, operate and improve the Holidater service
+• Provide, operate and improve the Wanderwall service
 • Personalise your experience and show relevant destinations and deals
 • Send transactional emails (account verification, password reset)
 • Send optional marketing emails (only with your consent)
@@ -40,7 +40,7 @@ const SECTIONS = [
 
 **Essential Cookies:** Required for the app to function (authentication session, CSRF protection). Cannot be disabled.
 
-**Analytics Cookies:** We use analytics to understand how users interact with Holidater. This data is aggregated and anonymised where possible.
+**Analytics Cookies:** We use analytics to understand how users interact with Wanderwall. This data is aggregated and anonymised where possible.
 
 **Marketing Cookies:** Used to measure the effectiveness of our marketing campaigns. Disabled by default — you must opt in.
 
@@ -54,7 +54,7 @@ You can manage your cookie preferences at any time using the Cookie Consent bann
 • **Supabase** (database and authentication) — EU data processing, GDPR compliant
 • **Vercel** (hosting and serverless functions) — US-based, adequacy decisions apply
 • **Google Gemini API** (AI travel assistant) — queries are not stored permanently
-• **Booking.com, Skyscanner, Airbnb** etc. — when you click "Book Now" you leave Holidater and their privacy policy applies
+• **Booking.com, Skyscanner, Airbnb** etc. — when you click "Book Now" you leave Wanderwall and their privacy policy applies
 
 We do not sell your personal data to third parties.`
   },
@@ -71,7 +71,7 @@ We do not sell your personal data to third parties.`
 • **Right to Object** — Object to processing based on legitimate interests
 • **Right to withdraw Consent** — Withdraw consent at any time for consent-based processing
 
-To exercise any of these rights, email us at **privacy@holidater.com**. We will respond within 30 days.`
+To exercise any of these rights, email us at **privacy@wanderwall.com**. We will respond within 30 days.`
   },
   {
     id: 'data-retention',
@@ -89,11 +89,11 @@ You can delete your account at any time from Profile → Settings → Delete Acc
   {
     id: 'contact',
     title: '7. Contact & DPO',
-    content: `**Holidater Ltd.**
+    content: `**Wanderwall Ltd.**
 Registered in Ireland
 
 **Data Protection Officer**
-Email: privacy@holidater.com
+Email: privacy@wanderwall.com
 Subject line: "Privacy Request"
 
 **Supervisory Authority**
@@ -112,7 +112,7 @@ export default function PrivacyPolicyPage() {
       <div className="bg-gradient-to-br from-sky-600 to-indigo-700 text-white py-16 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           <Link to="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-semibold mb-6 transition-colors">
-            <ArrowLeft size={16} /> Back to Holidater
+            <ArrowLeft size={16} /> Back to Wanderwall
           </Link>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
@@ -120,7 +120,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold font-display">Privacy Policy</h1>
           </div>
-          <p className="text-white/75 text-base">Last updated: January 2026 · Holidater Ltd., Dublin, Ireland</p>
+          <p className="text-white/75 text-base">Last updated: January 2026 · Wanderwall Ltd., Dublin, Ireland</p>
         </div>
       </div>
 
@@ -143,7 +143,7 @@ export default function PrivacyPolicyPage() {
         {/* Content */}
         <main className="flex-1 min-w-0 space-y-10">
           <p className="text-slate-600 leading-relaxed">
-            This Privacy Policy explains how Holidater Ltd. ("Holidater", "we", "us") collects, uses, and protects your personal data when you use our trip planning application. We are committed to protecting your privacy and complying with the EU General Data Protection Regulation (GDPR).
+            This Privacy Policy explains how Wanderwall Ltd. ("Wanderwall", "we", "us") collects, uses, and protects your personal data when you use our trip planning application. We are committed to protecting your privacy and complying with the EU General Data Protection Regulation (GDPR).
           </p>
 
           {SECTIONS.map(s => (
@@ -174,7 +174,7 @@ export default function PrivacyPolicyPage() {
       </div>
 
       <footer className="border-t border-slate-100 py-8 px-4 text-center text-sm text-slate-400">
-        <p>© {new Date().getFullYear()} Holidater Ltd. · <Link to="/terms" className="hover:text-slate-600">Terms of Service</Link> · <Link to="/" className="hover:text-slate-600">Back to app</Link></p>
+        <p>© {new Date().getFullYear()} Wanderwall Ltd. · <Link to="/terms" className="hover:text-slate-600">Terms of Service</Link> · <Link to="/" className="hover:text-slate-600">Back to app</Link></p>
       </footer>
     </div>
   )

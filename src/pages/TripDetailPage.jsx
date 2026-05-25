@@ -1247,11 +1247,11 @@ export default function TripDetailPage() {
         <div className="card text-center py-14 space-y-3">
           <div className="text-4xl">🌍</div>
           <h3 className="font-bold text-slate-700 font-display">No fellow travellers found</h3>
-          <p className="text-slate-500 text-sm">No other Holidater users have trips to {getDestination(trip)} yet.</p>
+          <p className="text-slate-500 text-sm">No other Wanderwall users have trips to {getDestination(trip)} yet.</p>
         </div>
       ) : (
         <>
-          <p className="text-sm text-slate-500">{fellowTravellers.length} Holidater user{fellowTravellers.length !== 1 ? 's' : ''} visiting {getDestination(trip)}</p>
+          <p className="text-sm text-slate-500">{fellowTravellers.length} Wanderwall user{fellowTravellers.length !== 1 ? 's' : ''} visiting {getDestination(trip)}</p>
           <div className="grid sm:grid-cols-2 gap-4">
             {fellowTravellers.map(t => (
               <div key={t.user_id} className="card hover:shadow-card-hover transition-all">

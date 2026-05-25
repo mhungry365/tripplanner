@@ -21,7 +21,7 @@ export default function AuthLayout() {
             🌍
           </div>
           <div>
-            <div className="text-2xl font-bold font-display">Holidater</div>
+            <div className="text-2xl font-bold font-display">Wanderwall</div>
             <div className="text-xs text-white/60 tracking-widest uppercase">Travel. Experience. Remember.</div>
           </div>
         </Link>
@@ -57,7 +57,7 @@ export default function AuthLayout() {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-xl">
               🌍
             </div>
-            <span className="text-xl font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">Holidater</span>
+            <span className="text-xl font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">Wanderwall</span>
           </Link>
           <Outlet />
         </div>

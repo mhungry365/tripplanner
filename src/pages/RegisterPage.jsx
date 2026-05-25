@@ -46,7 +46,7 @@ export default function RegisterPage() {
     <div className="animate-slide-up">
       <div className="mb-6">
         <h2 className="text-3xl font-bold font-display text-slate-900 mb-2">Start your journey</h2>
-        <p className="text-slate-500">Create your free Holidater account</p>
+        <p className="text-slate-500">Create your free Wanderwall account</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-6">

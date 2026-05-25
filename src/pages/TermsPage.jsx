@@ -5,19 +5,19 @@ const SECTIONS = [
   {
     id: 'acceptance',
     title: '1. Acceptance of Terms',
-    content: `By accessing or using Holidater ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Service.
+    content: `By accessing or using Wanderwall ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Service.
 
-These Terms constitute a legally binding agreement between you and Holidater Ltd., a company registered in Ireland. We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance.`
+These Terms constitute a legally binding agreement between you and Wanderwall Ltd., a company registered in Ireland. We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance.`
   },
   {
     id: 'services',
     title: '2. Description of Services',
-    content: `Holidater provides a web-based trip planning platform that allows users to:
+    content: `Wanderwall provides a web-based trip planning platform that allows users to:
 
 • Create and manage travel itineraries
 • Track travel budgets in multiple currencies
 • Search and compare flights and hotels via third-party partners
-• Share travel experiences with the Holidater community
+• Share travel experiences with the Wanderwall community
 • Access AI-powered travel advice via our chat assistant
 • View curated travel deals from our partners
 
@@ -26,9 +26,9 @@ We reserve the right to modify, suspend, or discontinue any part of the Service 
   {
     id: 'accounts',
     title: '3. User Accounts',
-    content: `**Registration:** You must provide accurate information when creating an account. You must be at least 16 years old to use Holidater.
+    content: `**Registration:** You must provide accurate information when creating an account. You must be at least 16 years old to use Wanderwall.
 
-**Security:** You are responsible for maintaining the confidentiality of your password. Notify us immediately at support@holidater.com if you suspect unauthorised access.
+**Security:** You are responsible for maintaining the confidentiality of your password. Notify us immediately at support@wanderwall.com if you suspect unauthorised access.
 
 **One account per person:** Each user may maintain one account. Creating multiple accounts to circumvent restrictions is prohibited.
 
@@ -37,7 +37,7 @@ We reserve the right to modify, suspend, or discontinue any part of the Service 
   {
     id: 'content',
     title: '4. User Content',
-    content: `**Your content:** You retain ownership of content you create (trip plans, photos, posts). By posting to the community feed, you grant Holidater a non-exclusive, royalty-free licence to display and distribute that content within the Service.
+    content: `**Your content:** You retain ownership of content you create (trip plans, photos, posts). By posting to the community feed, you grant Wanderwall a non-exclusive, royalty-free licence to display and distribute that content within the Service.
 
 **Content standards:** All content must comply with our Community Guidelines. You must not post:
 • Illegal, harmful, or offensive content
@@ -67,18 +67,18 @@ Violation may result in immediate account suspension.`
   {
     id: 'third-party',
     title: '6. Third-Party Links & Bookings',
-    content: `Holidater contains links to third-party booking sites (Booking.com, Skyscanner, Airbnb, etc.). When you click these links, you leave Holidater and enter a third-party service.
+    content: `Wanderwall contains links to third-party booking sites (Booking.com, Skyscanner, Airbnb, etc.). When you click these links, you leave Wanderwall and enter a third-party service.
 
 We are not responsible for: the accuracy of third-party pricing or availability, any transactions made on third-party sites, or the third party's privacy practices.
 
-Deals displayed on Holidater are provided in good faith but we make no guarantees of availability or pricing.`
+Deals displayed on Wanderwall are provided in good faith but we make no guarantees of availability or pricing.`
   },
   {
     id: 'liability',
     title: '7. Limitation of Liability',
     content: `To the maximum extent permitted by Irish law:
 
-• Holidater is provided "as is" without warranties of any kind
+• Wanderwall is provided "as is" without warranties of any kind
 • We do not guarantee the accuracy of travel information, deals, or AI-generated advice
 • We are not liable for any indirect, incidental, or consequential damages
 • Our total liability to you shall not exceed €100 or the amount you paid us in the 12 months preceding the claim, whichever is greater
@@ -89,15 +89,15 @@ Nothing in these Terms limits liability for death, personal injury, or fraudulen
   {
     id: 'governing-law',
     title: '8. Governing Law',
-    content: `These Terms are governed by and construed in accordance with the laws of Ireland. Any disputes arising from these Terms or your use of Holidater shall be subject to the exclusive jurisdiction of the courts of Ireland.
+    content: `These Terms are governed by and construed in accordance with the laws of Ireland. Any disputes arising from these Terms or your use of Wanderwall shall be subject to the exclusive jurisdiction of the courts of Ireland.
 
 If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force.
 
 **Consumer rights:** Nothing in these Terms affects your statutory rights as a consumer under Irish and EU consumer protection law.
 
 **Contact for legal matters:**
-Holidater Ltd.
-Email: legal@holidater.com
+Wanderwall Ltd.
+Email: legal@wanderwall.com
 Last updated: January 2026`
   },
 ]
@@ -109,7 +109,7 @@ export default function TermsPage() {
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white py-16 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           <Link to="/" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm font-semibold mb-6 transition-colors">
-            <ArrowLeft size={16} /> Back to Holidater
+            <ArrowLeft size={16} /> Back to Wanderwall
           </Link>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
@@ -117,7 +117,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold font-display">Terms of Service</h1>
           </div>
-          <p className="text-white/60 text-base">Last updated: January 2026 · Holidater Ltd., Dublin, Ireland</p>
+          <p className="text-white/60 text-base">Last updated: January 2026 · Wanderwall Ltd., Dublin, Ireland</p>
         </div>
       </div>
 
@@ -140,7 +140,7 @@ export default function TermsPage() {
         {/* Content */}
         <main className="flex-1 min-w-0 space-y-10">
           <p className="text-slate-600 leading-relaxed">
-            Please read these Terms of Service carefully before using Holidater. These terms govern your use of our trip planning platform and related services.
+            Please read these Terms of Service carefully before using Wanderwall. These terms govern your use of our trip planning platform and related services.
           </p>
 
           {SECTIONS.map(s => (
@@ -171,7 +171,7 @@ export default function TermsPage() {
       </div>
 
       <footer className="border-t border-slate-100 py-8 px-4 text-center text-sm text-slate-400">
-        <p>© {new Date().getFullYear()} Holidater Ltd. · <Link to="/privacy" className="hover:text-slate-600">Privacy Policy</Link> · <Link to="/" className="hover:text-slate-600">Back to app</Link></p>
+        <p>© {new Date().getFullYear()} Wanderwall Ltd. · <Link to="/privacy" className="hover:text-slate-600">Privacy Policy</Link> · <Link to="/" className="hover:text-slate-600">Back to app</Link></p>
       </footer>
     </div>
   )

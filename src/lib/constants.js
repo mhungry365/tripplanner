@@ -1,4 +1,4 @@
-export const APP_NAME = 'Holidater'
+export const APP_NAME = 'Wanderwall'
 export const APP_TAGLINE = 'Travel. Experience. Remember.'
 
 export const CURRENCIES = [

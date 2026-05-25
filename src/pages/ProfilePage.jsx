@@ -840,7 +840,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
 
-                <p className="mt-4 text-xs text-white/50">holidater.vercel.app</p>
+                <p className="mt-4 text-xs text-white/50">wanderwall.vercel.app</p>
               </div>
             </div>
 

@@ -18,8 +18,8 @@ export default async function handler(req, res) {
 
   try {
     const fullContents = [
-      { role: 'user',  parts: [{ text: 'You are an expert travel assistant for Holidater app. Help users find best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful.' }] },
-      { role: 'model', parts: [{ text: 'I am your Holidater travel assistant! I can help you find the best flights, hotels, travel tips, visa information and more. What would you like to know?' }] },
+      { role: 'user',  parts: [{ text: 'You are an expert travel assistant for Wanderwall app. Help users find best flights, hotels and travel options. Give specific actionable advice with approximate prices, best booking sites, travel tips, visa info and seasonal recommendations. Be concise, friendly and helpful.' }] },
+      { role: 'model', parts: [{ text: 'I am your Wanderwall travel assistant! I can help you find the best flights, hotels, travel tips, visa information and more. What would you like to know?' }] },
       ...contents,
     ]
 

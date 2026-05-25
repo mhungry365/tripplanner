@@ -36,7 +36,7 @@ const DEALS = [
     bg: 'bg-rose-50', iconBg: 'bg-rose-500',
     brand: 'Airbnb', brandColor: 'text-rose-600',
     title: 'Save on your first stay',
-    description: 'New to Airbnb? Get a discount on your first booking when you sign up through Holidater.',
+    description: 'New to Airbnb? Get a discount on your first booking when you sign up through Wanderwall.',
     badge: 'Save up to €40', badgeColor: 'bg-rose-100 text-rose-600',
     validUntil: '31 Dec 2025', url: 'https://www.airbnb.com/c/refer', exclusive: true,
   },
@@ -141,11 +141,11 @@ export default function DealsPage() {
           <div className="text-3xl sm:text-5xl mb-3">🎉</div>
           <h1 className="text-xl sm:text-3xl font-bold font-display mb-2 break-words">Exclusive Travel Deals</h1>
           <p className="text-white/80 text-xs sm:text-base mb-4 max-w-lg mx-auto">
-            Book through Holidater and save on hotels, flights and experiences
+            Book through Wanderwall and save on hotels, flights and experiences
           </p>
           <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur border border-white/25 rounded-full px-3 py-2 max-w-full">
             <Users size={13} className="text-white/80 flex-shrink-0" />
-            <span className="text-xs font-semibold text-white truncate">Join 10,000+ travellers saving with Holidater deals</span>
+            <span className="text-xs font-semibold text-white truncate">Join 10,000+ travellers saving with Wanderwall deals</span>
           </div>
         </div>
       </div>
@@ -284,7 +284,7 @@ export default function DealsPage() {
             <Tag size={24} className="text-white" />
           </div>
           <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-900 mb-2">Are you a hotel or business?</h2>
-          <h3 className="text-base font-semibold text-indigo-600 mb-3">Partner with Holidater</h3>
+          <h3 className="text-base font-semibold text-indigo-600 mb-3">Partner with Wanderwall</h3>
           <p className="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
             Reach thousands of travellers planning their next trip. List your exclusive deal and grow your bookings.
           </p>

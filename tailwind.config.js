@@ -16,7 +16,7 @@ export default {
         body: ['"DM Sans"', 'sans-serif'],
       },
       colors: {
-        holidater: {
+        wanderwall: {
           50:  '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -60,7 +60,7 @@ export default {
         'glow': '0 0 40px rgba(14,165,233,0.15)',
       },
       backgroundImage: {
-        'gradient-holidater': 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #f43f5e 100%)',
+        'gradient-wanderwall': 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #f43f5e 100%)',
         'gradient-soft': 'linear-gradient(135deg, #f0f9ff 0%, #fef3c7 50%, #fdf2f8 100%)',
         'gradient-card': 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
       }

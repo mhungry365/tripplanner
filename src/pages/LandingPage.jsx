@@ -47,9 +47,9 @@ const TOP_DEALS = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Sarah M.',    country: '🇮🇪 Dublin',   rating: 5, avatar: '👩‍🦱', quote: 'Holidater completely changed how I plan trips. The AI assistant gave me a perfect 2-week Japan itinerary in minutes. Absolutely love it!' },
+  { name: 'Sarah M.',    country: '🇮🇪 Dublin',   rating: 5, avatar: '👩‍🦱', quote: 'Wanderwall completely changed how I plan trips. The AI assistant gave me a perfect 2-week Japan itinerary in minutes. Absolutely love it!' },
   { name: 'Marco R.',   country: '🇮🇹 Milan',    rating: 5, avatar: '👨‍🦲', quote: 'The budget tracker alone is worth it. I saved over €300 on my Bali trip by comparing hotels and flights directly through the app.' },
-  { name: 'Aisha K.',   country: '🇳🇬 Lagos',    rating: 5, avatar: '👩🏾‍💼', quote: 'I\'ve tried every travel app out there. Holidater is the only one that feels like it was actually made by someone who travels.' },
+  { name: 'Aisha K.',   country: '🇳🇬 Lagos',    rating: 5, avatar: '👩🏾‍💼', quote: 'I\'ve tried every travel app out there. Wanderwall is the only one that feels like it was actually made by someone who travels.' },
 ]
 
 const STATS = [
@@ -80,7 +80,7 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow">
               <span className="text-lg">🌍</span>
             </div>
-            <span className="text-xl font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">Holidater</span>
+            <span className="text-xl font-bold font-display bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">Wanderwall</span>
           </Link>
 
           {/* Desktop nav */}
@@ -182,7 +182,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-20 px-4 sm:px-6 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 mb-3">How Holidater works</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 mb-3">How Wanderwall works</h2>
             <p className="text-slate-500 text-base sm:text-lg">Plan your perfect trip in 3 simple steps</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
@@ -346,7 +346,7 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-5xl mb-5 animate-float">🌍</div>
           <h2 className="text-3xl sm:text-4xl font-bold font-display mb-4">Ready for your next adventure?</h2>
-          <p className="text-white/60 text-base sm:text-lg mb-8">Join thousands of travellers planning dream trips on Holidater. Free forever.</p>
+          <p className="text-white/60 text-base sm:text-lg mb-8">Join thousands of travellers planning dream trips on Wanderwall. Free forever.</p>
           <Link to="/register" className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold px-8 py-4 rounded-xl hover:from-sky-600 hover:to-indigo-700 transition-all shadow-lg text-base">
             Create free account <ArrowRight size={18} />
           </Link>
@@ -363,7 +363,7 @@ export default function LandingPage() {
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center">
                   <span className="text-lg">🌍</span>
                 </div>
-                <span className="text-lg font-bold font-display">Holidater</span>
+                <span className="text-lg font-bold font-display">Wanderwall</span>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed mb-5">Travel. Experience. Remember.</p>
               <div className="flex gap-3">
@@ -416,7 +416,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-            <p>© {new Date().getFullYear()} Holidater Ltd. All rights reserved. Made with ❤️ in Dublin, Ireland.</p>
+            <p>© {new Date().getFullYear()} Wanderwall Ltd. All rights reserved. Made with ❤️ in Dublin, Ireland.</p>
             <div className="flex gap-4">
               <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
               <Link to="/terms"   className="hover:text-slate-300 transition-colors">Terms</Link>

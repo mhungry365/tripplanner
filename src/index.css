@@ -53,8 +53,8 @@
   .section-title {
     @apply text-2xl font-bold text-slate-800 font-display;
   }
-  .holidater-gradient-text {
-    @apply bg-gradient-holidater bg-clip-text text-transparent;
+  .wanderwall-gradient-text {
+    @apply bg-gradient-wanderwall bg-clip-text text-transparent;
   }
 }
 

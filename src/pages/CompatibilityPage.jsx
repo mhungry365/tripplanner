@@ -103,7 +103,7 @@ function ShareCard({ me, other, compat }) {
       ))}
 
       <div style={{ textAlign: 'center', marginTop: 20, color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-        holidater.vercel.app
+        wanderwall.vercel.app
       </div>
     </div>
   )
@@ -264,7 +264,7 @@ export default function CompatibilityPage() {
             Find Your Perfect Travel Match
           </h1>
           <p className="text-white/75 text-sm sm:text-base max-w-lg mx-auto">
-            Discover how compatible you are with other Holidater travellers based on your travel DNA
+            Discover how compatible you are with other Wanderwall travellers based on your travel DNA
           </p>
         </div>
       </div>

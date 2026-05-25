@@ -275,7 +275,7 @@ export default function AppLayout() {
           {/* Page title (desktop) */}
           <div className="hidden lg:block flex-shrink-0">
             <h1 className="text-lg font-bold text-slate-800 font-display">
-              {navItems.find(n => location.pathname.startsWith(n.path))?.label?.replace(' 🎉','') || 'Holidater'}
+              {navItems.find(n => location.pathname.startsWith(n.path))?.label?.replace(' 🎉','') || 'Wanderwall'}
             </h1>
           </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Cookie, ChevronDown, ChevronUp } from 'lucide-react'
 
-const STORAGE_KEY = 'holidater_cookie_consent'
+const STORAGE_KEY = 'wanderwall_cookie_consent'
 
 export default function CookieConsent() {
   const [visible,  setVisible]  = useState(false)
