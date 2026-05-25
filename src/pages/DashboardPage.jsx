@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass, Megaphone, Tag } from 'lucide-react'
 import { TRIP_STATUSES } from '../lib/constants'
 import { format } from 'date-fns'
+import { calculateCompatibility } from '../lib/compatibility'
 
 function StarRating({ rating }) {
   return (
@@ -34,11 +35,28 @@ function timeAgo(dateStr) {
 export default function DashboardPage() {
   const { profile } = useAuthStore()
   const { trips, fetchTrips } = useTripsStore()
-  const [trending, setTrending]           = useState([])
+  const [trending,      setTrending]      = useState([])
   const [announcements, setAnnouncements] = useState([])
+  const [topMatches,    setTopMatches]    = useState([])
+  const [loadingMatches,setLoadingMatches]= useState(true)
 
   useEffect(() => {
     if (profile?.id) fetchTrips(profile.id)
+  }, [profile?.id])
+
+  useEffect(() => {
+    if (!profile?.id) return
+    supabase.from('profiles').select('*').neq('id', profile.id).limit(30)
+      .then(({ data }) => {
+        if (data?.length) {
+          const ranked = data
+            .map(p => ({ profile: p, ...calculateCompatibility(profile, p) }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+          setTopMatches(ranked)
+        }
+        setLoadingMatches(false)
+      })
   }, [profile?.id])
 
   useEffect(() => {
@@ -229,6 +247,49 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Travel Matches */}
+      {!loadingMatches && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="section-title">Your Travel Matches 🔥</h2>
+              <p className="text-slate-400 text-xs mt-0.5">People you'd love travelling with</p>
+            </div>
+            <Link to="/compatibility" className="text-sm font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1">
+              See all <ArrowRight size={14} />
+            </Link>
+          </div>
+          {topMatches.length === 0 ? (
+            <div className="card text-center py-8">
+              <div className="text-4xl mb-2">🔥</div>
+              <p className="font-bold text-slate-800 mb-1">Invite friends to discover your travel matches!</p>
+              <p className="text-slate-500 text-sm mb-3">The more travellers join, the better your matches</p>
+              <Link to="/compatibility" className="btn-primary inline-flex items-center gap-2 text-sm px-4 py-2">
+                Explore Compatibility
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {topMatches.map(({ profile: p, score, label, emoji, color }) => (
+                <Link key={p.id} to={`/compatibility?with=${p.id}`}
+                  className="card-hover p-3 sm:p-4 text-center">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-lg font-bold mx-auto mb-2 flex-shrink-0">
+                    {p.avatar_url
+                      ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                      : <span>{p.full_name?.[0]?.toUpperCase()}</span>}
+                  </div>
+                  <p className="font-semibold text-slate-800 text-xs truncate mb-1">
+                    {p.full_name?.split(' ')[0]}
+                  </p>
+                  <div className="font-bold text-base" style={{ color }}>{score}% {emoji}</div>
+                  <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{label}</p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Travel Inspiration */}
       <div>

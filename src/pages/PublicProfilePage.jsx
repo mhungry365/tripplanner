@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
-import { Users, MapPin, Globe, Map, BookOpen, Award, MessageCircle } from 'lucide-react'
+import { Users, MapPin, Globe, Map, BookOpen, MessageCircle } from 'lucide-react'
 import { TRIP_STATUSES } from '../lib/constants'
 import { format, differenceInDays, getMonth } from 'date-fns'
 import toast from 'react-hot-toast'
+import { calculateCompatibility } from '../lib/compatibility'
 
 /* ─── helpers (same as ProfilePage) ───────────────────────────────────── */
 
@@ -87,6 +88,7 @@ function computeStats(trips) {
 export default function PublicProfilePage() {
   const { userId }        = useParams()
   const { profile: me }   = useAuthStore()
+  const navigate          = useNavigate()
 
   const [pubProfile, setPubProfile] = useState(null)
   const [trips,      setTrips]      = useState([])
@@ -95,6 +97,7 @@ export default function PublicProfilePage() {
   const [fLoading,   setFLoading]   = useState(false)
   const [pageLoading,setPageLoading]= useState(true)
   const [activeTab,  setActiveTab]  = useState('overview')
+  const [compat,     setCompat]     = useState(null)
 
   useEffect(() => {
     if (!userId) return
@@ -130,6 +133,7 @@ export default function PublicProfilePage() {
         .eq('following_id', userId)
         .maybeSingle()
       setFollowing(!!followRow)
+      if (profileData && me) setCompat(calculateCompatibility(me, profileData))
     }
 
     setPageLoading(false)
@@ -229,7 +233,7 @@ export default function PublicProfilePage() {
                   <Users size={14}/>{fLoading ? '…' : following ? 'Following' : 'Follow'}
                 </button>
                 <button
-                  onClick={()=>toast('Messaging coming soon!')}
+                  onClick={() => navigate(`/messages/${userId}`)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">
                   <MessageCircle size={14}/>Message
                 </button>
@@ -272,6 +276,28 @@ export default function PublicProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Compatibility banner ────────────────────────────────────── */}
+      {compat && !isOwnProfile && (
+        <Link to={`/compatibility?with=${userId}`}
+          className="flex items-center gap-4 p-4 rounded-2xl text-white shadow-lg hover:shadow-xl transition-shadow"
+          style={{ background: `linear-gradient(135deg, ${compat.color}cc, ${compat.color})` }}>
+          <div className="text-3xl">{compat.emoji}</div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold font-display">
+              You are {compat.score}% compatible — {compat.label}
+            </p>
+            <p className="text-white/80 text-xs mt-0.5 truncate">
+              {compat.factors.find(f => f.score === Math.max(...compat.factors.map(x => x.score / x.max)) * f.max)?.emoji}{' '}
+              Top match: {compat.factors.slice().sort((a,b)=>(b.score/b.max)-(a.score/a.max))[0]?.name}
+              {compat.factors.find(f => f.name === 'Shared Destinations')?.shared?.length > 0
+                ? ` · ${compat.factors.find(f => f.name === 'Shared Destinations').shared.length} shared destinations`
+                : ''}
+            </p>
+          </div>
+          <span className="text-white/70 text-xs font-semibold flex-shrink-0">Full breakdown →</span>
+        </Link>
+      )}
 
       {/* ── Tab nav ─────────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-sm border border-slate-100">

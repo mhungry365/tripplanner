@@ -2,15 +2,18 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag, Search, Settings, ChevronDown, MessageCircle } from 'lucide-react'
+import { LayoutDashboard, Map, Compass, User, LogOut, Heart, Menu, X, Bell, Plus, HelpCircle, Plane, Tag, Search, Settings, ChevronDown, MessageCircle, Flame } from 'lucide-react'
 import { APP_NAME } from '../../lib/constants'
 import toast from 'react-hot-toast'
 
+const MATCH_NEW_UNTIL = new Date('2026-06-01')
+
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/feed',      label: 'Feed',      icon: Heart },
-  { path: '/messages',  label: 'Messages',  icon: MessageCircle },
-  { path: '/explore',   label: 'Explore',   icon: Compass },
+  { path: '/dashboard',    label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/feed',         label: 'Feed',       icon: Heart },
+  { path: '/compatibility',label: 'Match 🔥',   icon: Flame, newBadge: true },
+  { path: '/messages',     label: 'Messages',   icon: MessageCircle },
+  { path: '/explore',      label: 'Explore',    icon: Compass },
   { path: '/trips',     label: 'My Trips',  icon: Map },
   { path: '/booking',   label: 'Booking',   icon: Plane },
   { path: '/deals',     label: 'Deals 🎉',  icon: Tag },
@@ -152,6 +155,7 @@ export default function AppLayout() {
     const active = location.pathname === item.path ||
       (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
     const badge = item.path === '/messages' && unreadMsgs > 0 ? unreadMsgs : 0
+    const showNew = item.newBadge && new Date() < MATCH_NEW_UNTIL
     return (
       <Link to={item.path} onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200
@@ -167,6 +171,11 @@ export default function AppLayout() {
           }`}>
             {badge > 9 ? '9+' : badge}
           </span>
+        )}
+        {showNew && badge === 0 && (
+          <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+            active ? 'bg-white/30 text-white' : 'bg-violet-500 text-white'
+          }`}>NEW</span>
         )}
       </Link>
     )

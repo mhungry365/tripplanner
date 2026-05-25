@@ -15,6 +15,7 @@ import TripDetailPage from './pages/TripDetailPage'
 import NewTripPage from './pages/NewTripPage'
 import ExplorePage from './pages/ExplorePage'
 import ProfilePage from './pages/ProfilePage'
+import CompatibilityPage from './pages/CompatibilityPage'
 import PublicProfilePage from './pages/PublicProfilePage'
 import MessagesPage from './pages/MessagesPage'
 import SupportPage from './pages/SupportPage'
@@ -75,7 +76,8 @@ export default function App() {
         <Route path="/trips"     element={<TripsPage />} />
         <Route path="/trips/new" element={<NewTripPage />} />
         <Route path="/trips/:id" element={<TripDetailPage />} />
-        <Route path="/explore"   element={<ExplorePage />} />
+        <Route path="/explore"        element={<ExplorePage />} />
+        <Route path="/compatibility"  element={<CompatibilityPage />} />
         <Route path="/profile"           element={<ProfilePage />} />
         <Route path="/profile/:userId"  element={<PublicProfilePage />} />
         <Route path="/messages"         element={<MessagesPage />} />
