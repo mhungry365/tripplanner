@@ -1,24 +1,75 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTripsStore } from '../stores/tripsStore'
+import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../lib/supabase'
 import {
   ArrowLeft, Plus, X, MapPin, Clock, ExternalLink,
-  Share2, ChevronRight, Plane, Pencil, Trash2, Check, GripVertical, Search
+  Share2, ChevronRight, Plane, Pencil, Trash2, Check, GripVertical, Search,
+  Loader2, Brain, Users2, Camera, Sparkles, CalendarPlus,
 } from 'lucide-react'
 import { TRIP_STATUSES, CURRENCIES } from '../lib/constants'
-import { format, eachDayOfInterval, parseISO } from 'date-fns'
+import { format, eachDayOfInterval, parseISO, differenceInDays } from 'date-fns'
 import toast from 'react-hot-toast'
+import { calculateCompatibility } from '../lib/compatibility'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'itinerary',  label: 'Itinerary',  emoji: '📅' },
+  { id: 'ai_plan',    label: 'AI Plan',    emoji: '🤖' },
   { id: 'hotels',     label: 'Hotels',     emoji: '🏨' },
-  { id: 'transport',  label: 'Transport',  emoji: '🚄' },
+  { id: 'transport',  label: 'Transport',  emoji: '✈️' },
   { id: 'activities', label: 'Activities', emoji: '📍' },
   { id: 'budget',     label: 'Budget',     emoji: '💰' },
+  { id: 'checklist',  label: 'Checklist',  emoji: '📋' },
+  { id: 'travellers', label: 'Travellers', emoji: '👥' },
+  { id: 'memories',   label: 'Memories',   emoji: '📸' },
 ]
+
+const CHECKLIST_CAT_EMOJI = { Documents: '📄', Health: '💊', Clothing: '👕', Tech: '📱', Money: '💳', Misc: '🎒' }
+
+function getDestination(trip) {
+  return trip?.trip_destinations?.[0]?.city || trip?.title || 'your destination'
+}
+
+function getDaysUntilTrip(trip) {
+  if (!trip?.start_date) return null
+  return differenceInDays(parseISO(trip.start_date), new Date())
+}
+
+function heroGrad(trip) {
+  const dest = getDestination(trip).toLowerCase()
+  if (/japan|tokyo|kyoto|osaka/.test(dest)) return 'from-pink-600 via-rose-500 to-orange-400'
+  if (/paris|france/.test(dest)) return 'from-indigo-600 via-purple-500 to-pink-400'
+  if (/bali|indonesia|thailand/.test(dest)) return 'from-emerald-500 via-teal-500 to-cyan-400'
+  if (/new york|usa|america/.test(dest)) return 'from-slate-700 via-slate-600 to-blue-500'
+  if (/dubai|uae/.test(dest)) return 'from-amber-500 via-orange-500 to-yellow-400'
+  if (/italy|rome|venice|milan/.test(dest)) return 'from-orange-500 via-red-500 to-rose-400'
+  if (/spain|barcelona|madrid/.test(dest)) return 'from-red-600 via-orange-500 to-yellow-400'
+  if (/greece|santorini|athens/.test(dest)) return 'from-blue-500 via-sky-400 to-cyan-300'
+  return 'from-sky-500 via-indigo-500 to-purple-600'
+}
+
+function getDefaultChecklist(trip) {
+  const dest = getDestination(trip)
+  return [
+    { category: 'Documents', title: 'Passport (valid 6+ months)', done: false },
+    { category: 'Documents', title: 'Travel insurance policy', done: false },
+    { category: 'Documents', title: 'Flight & hotel confirmations', done: false },
+    { category: 'Documents', title: `Visa for ${dest}`, done: false },
+    { category: 'Health', title: 'Check vaccination requirements', done: false },
+    { category: 'Health', title: 'Pack prescription medications', done: false },
+    { category: 'Health', title: 'First aid kit & sanitiser', done: false },
+    { category: 'Tech', title: 'Chargers & universal adapter', done: false },
+    { category: 'Tech', title: 'Download offline maps', done: false },
+    { category: 'Tech', title: 'Enable international roaming', done: false },
+    { category: 'Money', title: 'Notify bank of travel dates', done: false },
+    { category: 'Money', title: 'Get local currency / card', done: false },
+    { category: 'Misc', title: 'Arrange pet or house care', done: false },
+    { category: 'Misc', title: 'Check weather & pack accordingly', done: false },
+  ]
+}
 
 const CAT = {
   sightseeing:   { emoji: '🏛️', label: 'Sightseeing', color: 'bg-blue-50 text-blue-700' },
@@ -156,6 +207,18 @@ export default function TripDetailPage() {
   const [addingDay,    setAddingDay]    = useState(false)
 
   const trip = currentTrip
+  const { profile: myProfile } = useAuthStore()
+
+  // New intelligent feature state
+  const [aiPlan, setAiPlan]                       = useState(null)
+  const [aiLoading, setAiLoading]                 = useState(false)
+  const [aiError, setAiError]                     = useState('')
+  const [checkItems, setCheckItems]               = useState([])
+  const [checkLoading, setCheckLoading]           = useState(false)
+  const [memories, setMemories]                   = useState([])
+  const [memoriesLoading, setMemoriesLoading]     = useState(false)
+  const [fellowTravellers, setFellowTravellers]   = useState([])
+  const [travellersLoading, setTravellersLoading] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -174,6 +237,14 @@ export default function TripDetailPage() {
       .order('created_at', { ascending: false })
       .then(({ data }) => setTransactions(data || []))
   }, [id])
+
+  useEffect(() => {
+    if (!trip || !id) return
+    if (activeTab === 'ai_plan'    && !aiPlan && !aiLoading)                      loadAiPlan()
+    if (activeTab === 'checklist'  && checkItems.length === 0 && !checkLoading)   loadChecklist()
+    if (activeTab === 'travellers' && fellowTravellers.length === 0 && !travellersLoading) loadFellowTravellers()
+    if (activeTab === 'memories'   && memories.length === 0 && !memoriesLoading)  loadMemories()
+  }, [activeTab, trip, id])
 
   const ensureDays = async (data) => {
     if (!data.start_date || !data.end_date) return
@@ -467,6 +538,94 @@ export default function TripDetailPage() {
     if (error) { toast.error(error.message); return }
     setDays(prev => prev.map(d => d.id === dayId ? { ...d, title: editDayTitle } : d))
     setEditDayId(null)
+  }
+
+  // ── AI Plan ───────────────────────────────────────────────────────────────
+
+  const loadAiPlan = async () => {
+    if (!trip) return
+    setAiLoading(true)
+    setAiError('')
+    const dest = getDestination(trip)
+    const numDays = trip.total_days || 7
+    const prompt = `Create a detailed ${numDays}-day travel itinerary for ${dest}. Return ONLY valid JSON, no markdown, no code fences:
+{"overview":"2-3 sentence trip summary","highlights":["highlight1","highlight2","highlight3"],"days":[{"day":1,"theme":"Day theme","morning":"Morning activity","afternoon":"Afternoon activity","evening":"Evening activity/dinner","tip":"Local insider tip"}],"practical":{"best_time":"Best season note","getting_around":"Local transport advice","budget_tip":"Money saving tip","must_try":"Must-try food or experience"}}`
+    try {
+      const resp = await fetch('/api/ai-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const respData = await resp.json()
+      if (!resp.ok) { setAiError(respData.error || 'AI request failed'); setAiLoading(false); return }
+      const plan = JSON.parse(respData.text)
+      setAiPlan(plan)
+    } catch (err) {
+      setAiError(err.message || 'Failed to generate plan')
+    }
+    setAiLoading(false)
+  }
+
+  // ── Checklist ─────────────────────────────────────────────────────────────
+
+  const loadChecklist = async () => {
+    if (!id) return
+    setCheckLoading(true)
+    const { data } = await supabase.from('trip_checklist').select('*').eq('trip_id', id).order('created_at')
+    if (data && data.length > 0) {
+      setCheckItems(data)
+    } else {
+      const defaults = getDefaultChecklist(trip).map(item => ({ ...item, trip_id: id }))
+      const { data: created } = await supabase.from('trip_checklist').insert(defaults).select()
+      if (created) setCheckItems(created)
+    }
+    setCheckLoading(false)
+  }
+
+  const toggleCheckItem = async (item) => {
+    const newDone = !item.done
+    const { error } = await supabase.from('trip_checklist').update({ done: newDone }).eq('id', item.id)
+    if (!error) setCheckItems(prev => prev.map(c => c.id === item.id ? { ...c, done: newDone } : c))
+  }
+
+  // ── Memories ──────────────────────────────────────────────────────────────
+
+  const loadMemories = async () => {
+    if (!id) return
+    setMemoriesLoading(true)
+    const { data } = await supabase.from('posts')
+      .select('id, content, image_url, created_at, profiles(full_name, avatar_url)')
+      .eq('trip_id', id)
+      .order('created_at', { ascending: false })
+      .limit(24)
+    setMemories(data || [])
+    setMemoriesLoading(false)
+  }
+
+  // ── Fellow Travellers ─────────────────────────────────────────────────────
+
+  const loadFellowTravellers = async () => {
+    if (!trip) return
+    setTravellersLoading(true)
+    const dest = getDestination(trip)
+    const destWord = dest.toLowerCase().split(',')[0].trim()
+    const { data } = await supabase.from('trips')
+      .select('user_id, title, start_date, end_date, trip_destinations(city, country_name), profiles!trips_user_id_fkey(id, full_name, avatar_url, bio, travel_style, budget_style, adventure_level, food_level, culture_level, bucket_list)')
+      .neq('user_id', trip.user_id)
+      .not('profiles', 'is', null)
+      .limit(40)
+    const filtered = (data || []).filter(t => {
+      if (!t.profiles) return false
+      const tText = [t.title, ...(t.trip_destinations || []).map(d => `${d.city} ${d.country_name}`)].join(' ').toLowerCase()
+      return destWord.length > 3 && tText.includes(destWord)
+    })
+    const withScores = filtered.map(t => ({
+      ...t,
+      profile: t.profiles,
+      compat: myProfile ? calculateCompatibility(myProfile, t.profiles) : null,
+    })).sort((a, b) => (b.compat?.score || 0) - (a.compat?.score || 0))
+    setFellowTravellers(withScores.slice(0, 8))
+    setTravellersLoading(false)
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -931,43 +1090,336 @@ export default function TripDetailPage() {
     </div>
   )
 
-  const tabContent = { itinerary: TabItinerary, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget }
+  // ── Tab: AI Plan ──────────────────────────────────────────────────────────
+  const TabAiPlan = (
+    <div className="space-y-4">
+      {aiLoading ? (
+        <div className="card text-center py-16 space-y-4">
+          <div className="inline-flex items-center gap-3 text-indigo-600">
+            <Loader2 size={28} className="animate-spin" />
+            <span className="font-semibold text-lg">Crafting your itinerary...</span>
+          </div>
+          <p className="text-slate-500 text-sm">Gemini AI is planning your {getDestination(trip)} adventure</p>
+        </div>
+      ) : aiError ? (
+        <div className="card text-center py-12 space-y-3">
+          <div className="text-4xl">😕</div>
+          <p className="text-slate-600 font-semibold">{aiError}</p>
+          <button onClick={loadAiPlan} className="btn-primary text-sm py-2 inline-flex items-center gap-2">
+            <Brain size={15} /> Try Again
+          </button>
+        </div>
+      ) : !aiPlan ? (
+        <div className="card text-center py-16 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100 space-y-4">
+          <div className="text-5xl">🤖</div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-xl font-display mb-1">AI Trip Planner</h3>
+            <p className="text-slate-500 text-sm max-w-sm mx-auto">Let Gemini AI craft a personalised day-by-day itinerary for {getDestination(trip)}</p>
+          </div>
+          <button onClick={loadAiPlan} className="btn-primary inline-flex items-center gap-2 px-6 py-3">
+            <Sparkles size={16} /> Generate My Itinerary
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">🤖</span>
+              <div>
+                <h3 className="font-bold text-slate-800 font-display mb-1">AI Overview</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{aiPlan.overview}</p>
+              </div>
+            </div>
+            {aiPlan.highlights?.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {aiPlan.highlights.map((h, i) => (
+                  <span key={i} className="text-xs bg-white border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">{h}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          {(aiPlan.days || []).map(day => (
+            <div key={day.day} className="card space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
+                  {day.day}
+                </div>
+                <h3 className="font-bold text-slate-800 font-display">{day.theme}</h3>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[['🌅 Morning', day.morning], ['☀️ Afternoon', day.afternoon], ['🌙 Evening', day.evening]].map(([label, text]) => (
+                  <div key={label} className="bg-slate-50 rounded-xl p-3">
+                    <div className="text-xs font-bold text-slate-500 mb-1">{label}</div>
+                    <p className="text-sm text-slate-700 leading-relaxed">{text}</p>
+                  </div>
+                ))}
+              </div>
+              {day.tip && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                  <span className="text-base flex-shrink-0">💡</span>
+                  <p className="text-xs text-amber-800">{day.tip}</p>
+                </div>
+              )}
+            </div>
+          ))}
+          {aiPlan.practical && (
+            <div className="card">
+              <h3 className="font-bold text-slate-800 font-display mb-3">Practical Tips</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[['🗓️ Best Time', aiPlan.practical.best_time], ['🚇 Getting Around', aiPlan.practical.getting_around], ['💰 Budget Tip', aiPlan.practical.budget_tip], ['🍜 Must Try', aiPlan.practical.must_try]].map(([label, text]) => text && (
+                  <div key={label} className="bg-slate-50 rounded-xl p-3">
+                    <div className="text-xs font-bold text-slate-500 mb-1">{label}</div>
+                    <p className="text-sm text-slate-700">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <button onClick={() => { setAiPlan(null); loadAiPlan() }}
+            className="w-full card border-dashed border-2 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all text-sm font-semibold text-indigo-500 hover:text-indigo-700 py-4 flex items-center justify-center gap-2">
+            <Sparkles size={15} /> Regenerate Itinerary
+          </button>
+        </>
+      )}
+    </div>
+  )
+
+  // ── Tab: Checklist ────────────────────────────────────────────────────────
+  const checkByCategory = checkItems.reduce((acc, item) => { if (!acc[item.category]) acc[item.category] = []; acc[item.category].push(item); return acc }, {})
+  const doneCount = checkItems.filter(c => c.done).length
+
+  const TabChecklist = (
+    <div className="space-y-4">
+      {checkLoading ? (
+        <div className="card text-center py-12">
+          <Loader2 size={24} className="animate-spin text-sky-500 mx-auto" />
+          <p className="text-slate-400 text-sm mt-2">Loading checklist...</p>
+        </div>
+      ) : (
+        <>
+          <div className="card bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="font-bold text-slate-800 font-display">Trip Checklist</div>
+                <div className="text-sm text-slate-500">{doneCount} of {checkItems.length} completed</div>
+              </div>
+              <div className="text-3xl font-bold text-emerald-600">{checkItems.length > 0 ? Math.round(doneCount / checkItems.length * 100) : 0}%</div>
+            </div>
+            <div className="bg-white/60 rounded-full h-2.5 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-500"
+                style={{ width: `${checkItems.length > 0 ? doneCount / checkItems.length * 100 : 0}%` }} />
+            </div>
+          </div>
+          {Object.entries(checkByCategory).map(([cat, items]) => (
+            <div key={cat} className="card">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">{CHECKLIST_CAT_EMOJI[cat] || '📋'}</span>
+                <h3 className="font-bold text-slate-700 font-display">{cat}</h3>
+                <span className="text-xs text-slate-400 ml-auto">{items.filter(i => i.done).length}/{items.length}</span>
+              </div>
+              <div className="space-y-1.5">
+                {items.map(item => (
+                  <button key={item.id} onClick={() => toggleCheckItem(item)}
+                    className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl transition-all hover:bg-slate-50 ${item.done ? 'opacity-60' : ''}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${item.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                      {item.done && <Check size={11} className="text-white" />}
+                    </div>
+                    <span className={`text-sm flex-1 text-left ${item.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>{item.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+
+  // ── Tab: Travellers ───────────────────────────────────────────────────────
+  const TabTravellers = (
+    <div className="space-y-4">
+      {travellersLoading ? (
+        <div className="card text-center py-12">
+          <Loader2 size={24} className="animate-spin text-sky-500 mx-auto" />
+          <p className="text-slate-400 text-sm mt-2">Finding fellow travellers...</p>
+        </div>
+      ) : fellowTravellers.length === 0 ? (
+        <div className="card text-center py-14 space-y-3">
+          <div className="text-4xl">🌍</div>
+          <h3 className="font-bold text-slate-700 font-display">No fellow travellers found</h3>
+          <p className="text-slate-500 text-sm">No other Holidater users have trips to {getDestination(trip)} yet.</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-slate-500">{fellowTravellers.length} Holidater user{fellowTravellers.length !== 1 ? 's' : ''} visiting {getDestination(trip)}</p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {fellowTravellers.map(t => (
+              <div key={t.user_id} className="card hover:shadow-card-hover transition-all">
+                <div className="flex items-start gap-3">
+                  {t.profile?.avatar_url ? (
+                    <img src={t.profile.avatar_url} alt={t.profile.full_name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                      {t.profile?.full_name?.[0] || '?'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-800 font-display truncate">{t.profile?.full_name}</div>
+                    {t.profile?.bio && <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{t.profile.bio}</p>}
+                    {t.compat && (
+                      <span className="mt-1.5 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                        {t.compat.emoji} {t.compat.score}% match
+                      </span>
+                    )}
+                  </div>
+                  <Link to={`/compatibility?with=${t.profile?.id}`}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0">
+                    View Match
+                  </Link>
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-50 text-xs text-slate-400 flex items-center gap-1">
+                  <Plane size={10} />
+                  <span className="truncate">{t.title}</span>
+                  {t.start_date && <span className="ml-auto flex-shrink-0">{format(parseISO(t.start_date), 'MMM d')}{t.end_date && ` – ${format(parseISO(t.end_date), 'MMM d')}`}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+
+  // ── Tab: Memories ─────────────────────────────────────────────────────────
+  const TabMemories = (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">{memories.length} memor{memories.length !== 1 ? 'ies' : 'y'}</p>
+        <Link to="/feed" className="btn-primary text-sm py-2 inline-flex items-center gap-1.5">
+          <Camera size={14} /> Add Memory
+        </Link>
+      </div>
+      {memoriesLoading ? (
+        <div className="card text-center py-12">
+          <Loader2 size={24} className="animate-spin text-sky-500 mx-auto" />
+          <p className="text-slate-400 text-sm mt-2">Loading memories...</p>
+        </div>
+      ) : memories.length === 0 ? (
+        <div className="card text-center py-14 space-y-3">
+          <div className="text-5xl">📸</div>
+          <h3 className="font-bold text-slate-700 font-display">No memories yet</h3>
+          <p className="text-slate-500 text-sm">Share posts tagged to this trip to collect them here</p>
+          <Link to="/feed" className="btn-primary text-sm py-2 inline-flex items-center gap-1.5">
+            <Camera size={14} /> Share a memory
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {memories.map(m => (
+            <div key={m.id} className="relative group rounded-2xl overflow-hidden bg-slate-100 aspect-square">
+              {m.image_url ? (
+                <img src={m.image_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-100 to-indigo-100 p-3">
+                  <p className="text-xs text-slate-600 text-center line-clamp-4">{m.content}</p>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                <p className="text-white text-xs font-semibold truncate">{m.profiles?.full_name}</p>
+                <p className="text-white/70 text-[10px]">{format(parseISO(m.created_at), 'MMM d, yyyy')}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const tabContent = { itinerary: TabItinerary, ai_plan: TabAiPlan, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget, checklist: TabChecklist, travellers: TabTravellers, memories: TabMemories }
 
   // ─── Render ───────────────────────────────────────────────────────────────
+  const daysUntil = getDaysUntilTrip(trip)
+  const dest = getDestination(trip)
+
   return (
     <div className="space-y-5 animate-fade-in max-w-4xl">
 
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <Link to="/trips" className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors flex-shrink-0 mt-1">
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap mb-1">
-            <h1 className="section-title truncate">{trip.title}</h1>
-            <span className={`badge flex-shrink-0 ${TRIP_STATUSES[trip.status]?.color}`}>{TRIP_STATUSES[trip.status]?.label}</span>
+      {/* Cinematic Hero */}
+      <div className={`relative rounded-3xl bg-gradient-to-br ${heroGrad(trip)} p-6 sm:p-8 text-white overflow-hidden shadow-xl`}>
+        {/* Decorative orbs */}
+        <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-black/10 rounded-full blur-2xl pointer-events-none" />
+
+        {/* Back + share row */}
+        <div className="relative flex items-center justify-between mb-6">
+          <Link to="/trips" className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-medium transition-colors">
+            <ArrowLeft size={16} /> All Trips
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm">
+              {TRIP_STATUSES[trip.status]?.label}
+            </span>
+            <button
+              onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!') }}
+              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors" title="Share">
+              <Share2 size={15} />
+            </button>
           </div>
-          <p className="text-slate-500 text-sm">
-            📅 {format(parseISO(trip.start_date), 'MMM d')} – {format(parseISO(trip.end_date), 'MMM d, yyyy')}
-            <span className="mx-2">·</span>
-            {trip.total_days} day{trip.total_days !== 1 ? 's' : ''}
-            {trip.traveller_count > 1 && <><span className="mx-2">·</span> 👥 {trip.traveller_count} travellers</>}
+        </div>
+
+        {/* Title + destination */}
+        <div className="relative space-y-1 mb-6">
+          <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
+            <MapPin size={13} /> {dest}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display leading-tight">{trip.title}</h1>
+          <p className="text-white/70 text-sm">
+            {trip.start_date && format(parseISO(trip.start_date), 'MMM d')}
+            {trip.end_date && ` – ${format(parseISO(trip.end_date), 'MMM d, yyyy')}`}
+            {trip.total_days && ` · ${trip.total_days} days`}
+            {trip.traveller_count > 1 && ` · 👥 ${trip.traveller_count} travellers`}
           </p>
         </div>
-        <button
-          onClick={() => {
-            const dest = trip.trip_destinations?.[0]?.city || trip.title
-            const params = new URLSearchParams({ destination: dest, checkin: trip.start_date, checkout: trip.end_date })
-            navigate(`/booking?${params}`)
-          }}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs font-bold hover:from-sky-600 hover:to-indigo-700 transition-all flex-shrink-0">
-          <Plane size={14} /> Book
-        </button>
-        <button
-          onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!') }}
-          className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors flex-shrink-0" title="Share">
-          <Share2 size={18} />
-        </button>
+
+        {/* Countdown + actions row */}
+        <div className="relative flex items-center justify-between flex-wrap gap-3">
+          {/* Countdown */}
+          {daysUntil !== null && (
+            <div className="flex items-center gap-3">
+              {daysUntil > 0 ? (
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2.5 text-center">
+                  <div className="text-2xl font-bold font-display leading-none">{daysUntil}</div>
+                  <div className="text-[10px] text-white/80 font-semibold uppercase tracking-wide mt-0.5">days to go</div>
+                </div>
+              ) : daysUntil === 0 ? (
+                <div className="bg-white/25 backdrop-blur-sm rounded-2xl px-4 py-2.5">
+                  <div className="text-sm font-bold">🎉 Today!</div>
+                </div>
+              ) : (
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2.5 text-center">
+                  <div className="text-2xl font-bold font-display leading-none">{Math.abs(daysUntil)}</div>
+                  <div className="text-[10px] text-white/80 font-semibold uppercase tracking-wide mt-0.5">days in</div>
+                </div>
+              )}
+              <CalendarPlus size={15} className="text-white/60" />
+              <span className="text-white/60 text-xs">
+                {daysUntil > 0 ? `${Math.floor(daysUntil / 7)}w ${daysUntil % 7}d` : daysUntil < 0 ? 'Trip underway' : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Quick action buttons */}
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => {
+                const params = new URLSearchParams({ destination: dest, checkin: trip.start_date || '', checkout: trip.end_date || '' })
+                navigate(`/booking?${params}`)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs font-bold transition-all">
+              <Plane size={13} /> Book
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Tab navigation */}

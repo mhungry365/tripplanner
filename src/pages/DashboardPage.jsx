@@ -5,7 +5,7 @@ import { useTripsStore } from '../stores/tripsStore'
 import { supabase } from '../lib/supabase'
 import { Map, Globe, Calendar, TrendingUp, Plus, ArrowRight, Star, Compass, Megaphone, Tag } from 'lucide-react'
 import { TRIP_STATUSES } from '../lib/constants'
-import { format } from 'date-fns'
+import { format, differenceInDays, parseISO } from 'date-fns'
 import { calculateCompatibility } from '../lib/compatibility'
 
 function StarRating({ rating }) {
@@ -185,40 +185,61 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Upcoming trip */}
-      {upcomingTrip && (
-        <div>
-          <h2 className="section-title mb-4">Upcoming Trip</h2>
-          <Link to={`/trips/${upcomingTrip.id}`} className="card-hover block p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="text-xl font-bold font-display text-slate-900 mb-1">{upcomingTrip.title}</div>
-                <div className="text-sm text-slate-500 mb-3">
-                  {format(new Date(upcomingTrip.start_date), 'MMM d')} – {format(new Date(upcomingTrip.end_date), 'MMM d, yyyy')} · {upcomingTrip.total_days} days
+      {/* Upcoming trip with countdown */}
+      {upcomingTrip && (() => {
+        const daysUntil = upcomingTrip.start_date ? differenceInDays(parseISO(upcomingTrip.start_date), new Date()) : null
+        const dest = upcomingTrip.trip_destinations?.[0]?.city || upcomingTrip.title
+        return (
+          <div>
+            <h2 className="section-title mb-4">Upcoming Trip</h2>
+            <Link to={`/trips/${upcomingTrip.id}`} className="block rounded-2xl bg-gradient-to-br from-sky-500 via-indigo-500 to-purple-600 text-white p-6 shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-white/70 text-xs font-medium mb-1">
+                    <Calendar size={11} /> {dest}
+                  </div>
+                  <div className="text-xl font-bold font-display mb-1 leading-tight">{upcomingTrip.title}</div>
+                  <div className="text-white/70 text-sm">
+                    {upcomingTrip.start_date && format(parseISO(upcomingTrip.start_date), 'MMM d')}
+                    {upcomingTrip.end_date && ` – ${format(parseISO(upcomingTrip.end_date), 'MMM d, yyyy')}`}
+                    {upcomingTrip.total_days && ` · ${upcomingTrip.total_days} days`}
+                  </div>
                 </div>
-                <span className={`badge ${TRIP_STATUSES[upcomingTrip.status]?.color}`}>
-                  {TRIP_STATUSES[upcomingTrip.status]?.label}
-                </span>
+                {/* Countdown bubble */}
+                {daysUntil !== null && (
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-3 text-center flex-shrink-0">
+                    {daysUntil > 0 ? (
+                      <>
+                        <div className="text-3xl font-bold font-display leading-none">{daysUntil}</div>
+                        <div className="text-[9px] text-white/80 font-semibold uppercase tracking-wide mt-1">days to go</div>
+                      </>
+                    ) : daysUntil === 0 ? (
+                      <div className="text-sm font-bold">🎉 Today!</div>
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold font-display leading-none">{Math.abs(daysUntil)}</div>
+                        <div className="text-[9px] text-white/80 font-semibold uppercase tracking-wide mt-1">days in</div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-              <ArrowRight size={20} className="text-slate-400 mt-1" />
-            </div>
-            {upcomingTrip.budget_total > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Budget</span>
-                  <span className="font-semibold text-slate-800">
-                    {upcomingTrip.budget_currency} {upcomingTrip.budget_total?.toLocaleString()}
-                  </span>
+              {upcomingTrip.budget_total > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/20">
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-white/70">Budget</span>
+                    <span className="font-semibold">{upcomingTrip.budget_currency} {upcomingTrip.budget_total?.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-white/20 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-white/70 h-full rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, (upcomingTrip.budget_spent / upcomingTrip.budget_total) * 100)}%` }} />
+                  </div>
                 </div>
-                <div className="mt-2 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-gradient-to-r from-sky-500 to-indigo-600 h-full rounded-full"
-                    style={{ width: `${Math.min(100, (upcomingTrip.budget_spent / upcomingTrip.budget_total) * 100)}%` }} />
-                </div>
-              </div>
-            )}
-          </Link>
-        </div>
-      )}
+              )}
+            </Link>
+          </div>
+        )
+      })()}
 
       {/* Deals banner */}
       <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-5 text-white">
