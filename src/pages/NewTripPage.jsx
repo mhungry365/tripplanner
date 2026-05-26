@@ -97,16 +97,24 @@ export default function NewTripPage() {
       setLoading(false)
       return
     }
+    const { destination_city, destination_country, tags: rawTags, budget_total: rawBudget, ...rest } = form
     const tripData = {
-      ...form,
+      ...rest,
       user_id: user.id,
-      budget_total: parseFloat(form.budget_total) || 0,
-      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      budget_total: parseFloat(rawBudget) || 0,
+      tags: rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : [],
     }
     const { data, error } = await createTrip(tripData)
     if (error) {
       toast.error('Failed to create trip: ' + error.message)
     } else {
+      if (destination_city) {
+        await supabase.from('trip_destinations').insert({
+          trip_id: data.id,
+          city: destination_city,
+          country_name: destination_country || null,
+        })
+      }
       toast.success('Trip created! 🎉')
       navigate(`/trips/${data.id}`)
     }
