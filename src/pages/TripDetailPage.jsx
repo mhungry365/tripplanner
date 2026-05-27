@@ -168,6 +168,7 @@ export default function TripDetailPage() {
   const [transportModal, setTransportModal] = useState(false)
   const [expenseModal, setExpenseModal]   = useState(false)
   const [roamingModal, setRoamingModal]   = useState(false)
+  const [insuranceModal, setInsuranceModal] = useState(false)
   const [selectedDay, setSelectedDay]     = useState(null)
 
   // Add forms
@@ -246,7 +247,9 @@ export default function TripDetailPage() {
 
   // Run visa check whenever both passport and trip are available
   useEffect(() => {
-    if (passportCountry && trip) checkVisa(passportCountry, trip)
+    if (passportCountry && trip?.id) {
+      checkVisa(passportCountry, trip)
+    }
   }, [trip?.id, passportCountry])
 
   useEffect(() => {
@@ -575,6 +578,7 @@ export default function TripDetailPage() {
         }),
       })
       const data = await res.json()
+      console.log('visa response:', data)
       setVisaInfo(data)
     } catch (e) {
       console.error('checkVisa error:', e)
@@ -1261,7 +1265,7 @@ export default function TripDetailPage() {
             <div style={{ width: 16, height: 16, border: '2px solid #6366f1', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             Checking visa requirements for {passportCountry} passport holders...
           </div>
-        ) : visaInfo && !visaInfo.error ? (
+        ) : visaInfo && !visaInfo.error && visaInfo.visa_type ? (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span style={{ fontSize: 24 }}>{visaInfo.visa_required ? '📋' : '✅'}</span>
@@ -1549,6 +1553,12 @@ export default function TripDetailPage() {
                 className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
             )
           }
+          if (a.includes('Get travel insurance')) {
+            return (
+              <button key={i} onClick={() => setInsuranceModal(true)}
+                className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
+            )
+          }
           if (a.includes('Check roaming charges')) {
             return (
               <button key={i} onClick={() => setRoamingModal(true)}
@@ -1582,6 +1592,30 @@ export default function TripDetailPage() {
               <div className="font-semibold text-indigo-800 text-sm">Travelling outside the EU?</div>
               <div className="text-indigo-600 text-xs mt-0.5">Buy a local SIM on arrival, or get an international eSIM in advance at <span className="font-semibold">Airalo.com</span></div>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Travel Insurance */}
+      {insuranceModal && (
+        <Modal title="🏥 Travel Insurance" onClose={() => setInsuranceModal(false)}>
+          <p className="text-slate-600 text-sm leading-relaxed">Compare travel insurance providers before you go. Cover typically includes medical emergencies, cancellation, and lost luggage.</p>
+          <div className="space-y-3 mt-1">
+            {[
+              { name: 'AXA Travel Insurance', url: 'https://www.axa.ie/travel-insurance', desc: 'Single trip & annual multi-trip cover' },
+              { name: 'Allianz Travel', url: 'https://www.allianz-travel.ie', desc: 'Comprehensive plans with 24/7 assistance' },
+              { name: 'Europ Assistance', url: 'https://www.europ-assistance.ie', desc: 'Medical & travel protection plans' },
+              { name: 'Covermore', url: 'https://www.covermore.com', desc: 'Flexible cover for all trip types' },
+            ].map(({ name, url, desc }) => (
+              <a key={name} href={url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100 hover:bg-sky-50 hover:border-sky-100 transition-colors no-underline group">
+                <div>
+                  <div className="font-semibold text-slate-800 text-sm group-hover:text-sky-700">{name}</div>
+                  <div className="text-slate-500 text-xs mt-0.5">{desc}</div>
+                </div>
+                <span className="text-slate-300 group-hover:text-sky-400 text-sm ml-3">→</span>
+              </a>
+            ))}
           </div>
         </Modal>
       )}
