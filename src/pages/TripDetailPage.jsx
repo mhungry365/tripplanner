@@ -16,15 +16,15 @@ import { calculateCompatibility } from '../lib/compatibility'
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'itinerary',  label: 'Itinerary & AI', emoji: '🗺️' },
-  { id: 'hotels',     label: 'Hotels',     emoji: '🏨' },
-  { id: 'transport',  label: 'Transport',  emoji: '✈️' },
-  { id: 'activities', label: 'Activities', emoji: '📍' },
-  { id: 'budget',     label: 'Budget',     emoji: '💰' },
-  { id: 'visa',       label: 'Visa',       emoji: '🛂' },
-  { id: 'checklist',  label: 'Checklist',  emoji: '📋' },
-  { id: 'travellers', label: 'Travellers', emoji: '👥' },
-  { id: 'memories',   label: 'Memories',   emoji: '📸' },
+  { id: 'itinerary',  label: 'Plan'       },
+  { id: 'hotels',     label: 'Hotels'     },
+  { id: 'transport',  label: 'Transport'  },
+  { id: 'activities', label: 'Activities' },
+  { id: 'budget',     label: 'Budget'     },
+  { id: 'visa',       label: 'Visa'       },
+  { id: 'checklist',  label: 'Checklist'  },
+  { id: 'travellers', label: 'Travellers' },
+  { id: 'memories',   label: 'Memories'   },
 ]
 
 const CHECKLIST_CAT_EMOJI = { Documents: '📄', Health: '💊', Clothing: '👕', Tech: '📱', Money: '💳', Misc: '🎒' }
@@ -1305,12 +1305,12 @@ export default function TripDetailPage() {
                 </a>
               )}
               {!visaInfo.apply_url && !visaInfo.embassy_url && (
-                <a href={`https://www.iatatravelcentre.com/passport-visa-health-travel-document-requirements.htm`} target="_blank" rel="noopener noreferrer"
+                <a href="https://www.timaticweb2.com/integration/external" target="_blank" rel="noopener noreferrer"
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#f0f0ff', border: '1.5px solid #e0e0ff', borderRadius: 12, textDecoration: 'none' }}>
                   <span style={{ fontSize: 20 }}>🌐</span>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5' }}>IATA Travel Centre</div>
-                    <div style={{ fontSize: 11, color: '#6b7280' }}>Verify entry requirements officially</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5' }}>IATA Timatic</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>Verify official entry requirements</div>
                   </div>
                   <span style={{ marginLeft: 'auto', color: '#a5b4fc', fontSize: 16 }}>→</span>
                 </a>
@@ -1573,40 +1573,16 @@ export default function TripDetailPage() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto scrollbar-hide -mx-1 px-1">
+      <div style={{ display: 'flex', overflowX: 'auto', gap: 4, scrollbarWidth: 'none', background: '#f1f5f9', padding: 4, borderRadius: 16, msOverflowStyle: 'none' }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 sm:flex-1 justify-center min-h-[44px]
-              ${activeTab === tab.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-            <span>{tab.emoji}</span>
-            <span className="hidden xs:inline">{tab.label}</span>
+            style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+              background: activeTab === tab.id ? '#fff' : 'transparent',
+              color: activeTab === tab.id ? '#0f172a' : '#64748b',
+              boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+            {tab.label}
           </button>
         ))}
-      </div>
-
-      {/* Alerts */}
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        {alerts.map((a, i) => {
-          if (a.includes('Check visa requirements')) {
-            return (
-              <button key={i} onClick={() => setActiveTab('visa')}
-                className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
-            )
-          }
-          if (a.includes('Get travel insurance')) {
-            return (
-              <button key={i} onClick={() => setInsuranceModal(true)}
-                className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
-            )
-          }
-          if (a.includes('Check roaming charges')) {
-            return (
-              <button key={i} onClick={() => setRoamingModal(true)}
-                className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
-            )
-          }
-          return <div key={i} className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl">{a}</div>
-        })}
       </div>
 
       {tabContent[activeTab]}

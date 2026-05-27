@@ -30,16 +30,16 @@ Respond ONLY with a JSON object in this exact format, no markdown, no explanatio
       visa_type: 'Check embassy website',
       notes: 'Please check the official Slovak embassy website for current visa requirements.',
       embassy_url: 'https://www.mzv.sk/en/web/dublin-en',
-      apply_url: 'https://www.vfsvisaonline.com',
-      source: 'Embassy of Slovakia in Dublin'
+      apply_url: 'https://visa.vfsglobal.com/irl/en/svk',
+      source: 'Embassy of Slovakia / VFS Global'
     },
     'default': {
       visa_required: null,
       visa_type: 'Check embassy website',
       notes: 'Please check the official embassy website for current visa requirements.',
-      embassy_url: 'https://www.iatatravelcentre.com',
-      apply_url: 'https://www.vfsvisaonline.com',
-      source: 'IATA Travel Centre'
+      embassy_url: 'https://www.timaticweb2.com/integration/external',
+      apply_url: 'https://visa.vfsglobal.com',
+      source: 'IATA Timatic / VFS Global'
     }
   }
 
