@@ -103,7 +103,7 @@ const BUDGET_CATS = [
 const ALERTS_MAP = {
   japan:   ['🌸 Cherry blossom season March–April', '⚡ 100V electrical outlets', '💴 Cash preferred', '🚭 Strict no-smoking rules'],
   nepal:   ['🏔️ Altitude sickness above 3000m', '💉 Vaccinations recommended', '🪙 Local currency preferred', '📋 Trekking permits required'],
-  default: ['📋 Check visa requirements', '🏥 Get travel insurance', '💱 Notify your bank', '📱 Check roaming charges'],
+  default: ['📋 Check visa requirements', '🏥 Get travel insurance', '📱 Check roaming charges'],
 }
 
 function getAlerts(trip) {
@@ -167,6 +167,7 @@ export default function TripDetailPage() {
   const [hotelModal, setHotelModal]       = useState(false)
   const [transportModal, setTransportModal] = useState(false)
   const [expenseModal, setExpenseModal]   = useState(false)
+  const [roamingModal, setRoamingModal]   = useState(false)
   const [selectedDay, setSelectedDay]     = useState(null)
 
   // Add forms
@@ -243,6 +244,10 @@ export default function TripDetailPage() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    if (passportCountry && trip) checkVisa(passportCountry, trip)
+  }, [trip?.id, passportCountry])
 
   useEffect(() => {
     if (!id) return
@@ -572,7 +577,8 @@ export default function TripDetailPage() {
       const data = await res.json()
       setVisaInfo(data)
     } catch (e) {
-      console.error(e)
+      console.error('checkVisa error:', e)
+      setVisaInfo({ error: e.message || 'Unknown error' })
     }
     setVisaLoading(false)
   }
@@ -1230,7 +1236,7 @@ export default function TripDetailPage() {
   const TabChecklist = (
     <div className="space-y-4">
       {/* VISA INTELLIGENCE */}
-      <div style={{ background: '#f8f8ff', border: '1.5px solid #e0e0ff', borderRadius: 16, padding: 20 }}>
+      <div id="visa-card" style={{ background: '#f8f8ff', border: '1.5px solid #e0e0ff', borderRadius: 16, padding: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12 }}>🛂 Visa Requirements</div>
         {!passportCountry ? (
           <div>
@@ -1263,7 +1269,7 @@ export default function TripDetailPage() {
                 <div style={{ fontSize: 16, fontWeight: 700, color: visaInfo.visa_required ? '#f59e0b' : '#22c55e' }}>{visaInfo.visa_type}</div>
                 <div style={{ fontSize: 12, color: '#9ca3af' }}>For {passportCountry} passport holders</div>
               </div>
-              <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }} style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Change passport</button>
+                <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }} style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Change passport</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
               {visaInfo.cost_usd != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Cost</div><div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>${visaInfo.cost_usd}</div></div>}
@@ -1276,6 +1282,16 @@ export default function TripDetailPage() {
               {visaInfo.embassy_url && <a href={visaInfo.embassy_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: '#6366f1', background: '#f0f0ff', padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>Embassy Website →</a>}
             </div>
             {visaInfo.source && <p style={{ fontSize: 11, color: '#d1d5db', marginTop: 10 }}>Source: {visaInfo.source}</p>}
+          </div>
+        ) : visaInfo?.error ? (
+          <div>
+            <div style={{ color: '#ef4444', fontSize: 14, marginBottom: 10 }}>Could not load visa info. Please try again.</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button onClick={() => { setVisaInfo(null); checkVisa(passportCountry) }}
+                style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#6366f1', padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>Retry</button>
+              <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }}
+                style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Change passport</button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -1526,14 +1542,49 @@ export default function TripDetailPage() {
 
       {/* Alerts */}
       <div className="flex gap-3 overflow-x-auto pb-1">
-        {alerts.map((a, i) => (
-          <div key={i} className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl">{a}</div>
-        ))}
+        {alerts.map((a, i) => {
+          if (a.includes('Check visa requirements')) {
+            return (
+              <button key={i} onClick={() => { setActiveTab('checklist'); setTimeout(() => document.getElementById('visa-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150) }}
+                className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
+            )
+          }
+          if (a.includes('Check roaming charges')) {
+            return (
+              <button key={i} onClick={() => setRoamingModal(true)}
+                className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
+            )
+          }
+          return <div key={i} className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl">{a}</div>
+        })}
       </div>
 
       {tabContent[activeTab]}
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
+
+      {/* Roaming Advice */}
+      {roamingModal && (
+        <Modal title="📱 Roaming Advice" onClose={() => setRoamingModal(false)}>
+          <p className="text-slate-600 text-sm leading-relaxed">Contact your mobile carrier before travel. Most carriers offer temporary roaming add-ons.</p>
+          <div className="space-y-3 mt-1">
+            {[
+              { carrier: 'Three Ireland', detail: 'Add a roaming bolt-on via the Three app before you travel.' },
+              { carrier: 'Vodafone', detail: 'Activate TravelPlus in the My Vodafone app for daily roaming rates.' },
+              { carrier: 'Eir', detail: 'Roam Like Home within the EU — included on most plans at no extra cost.' },
+            ].map(({ carrier, detail }) => (
+              <div key={carrier} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="font-semibold text-slate-800 text-sm">{carrier}</div>
+                <div className="text-slate-500 text-xs mt-0.5">{detail}</div>
+              </div>
+            ))}
+            <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+              <div className="font-semibold text-indigo-800 text-sm">Travelling outside the EU?</div>
+              <div className="text-indigo-600 text-xs mt-0.5">Buy a local SIM on arrival, or get an international eSIM in advance at <span className="font-semibold">Airalo.com</span></div>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Add Activity */}
       {activityModal && (
