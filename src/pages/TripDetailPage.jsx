@@ -16,15 +16,15 @@ import { calculateCompatibility } from '../lib/compatibility'
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'itinerary',  label: 'Plan'       },
-  { id: 'hotels',     label: 'Hotels'     },
-  { id: 'transport',  label: 'Transport'  },
-  { id: 'activities', label: 'Activities' },
-  { id: 'budget',     label: 'Budget'     },
-  { id: 'visa',       label: 'Visa'       },
-  { id: 'checklist',  label: 'Checklist'  },
-  { id: 'travellers', label: 'Travellers' },
-  { id: 'memories',   label: 'Memories'   },
+  { id: 'itinerary',  label: '🤖 AI Itinerary' },
+  { id: 'hotels',     label: '🏨 Hotels'       },
+  { id: 'transport',  label: '✈️ Transport'    },
+  { id: 'activities', label: '🎯 Activities'   },
+  { id: 'budget',     label: '💰 Budget'       },
+  { id: 'visa',       label: '🛂 Visa'         },
+  { id: 'checklist',  label: '✅ Checklist'    },
+  { id: 'travellers', label: '👥 Travellers'   },
+  { id: 'memories',   label: '📸 Memories'     },
 ]
 
 const CHECKLIST_CAT_EMOJI = { Documents: '📄', Health: '💊', Clothing: '👕', Tech: '📱', Money: '💳', Misc: '🎒' }
@@ -215,6 +215,7 @@ export default function TripDetailPage() {
   const [aiPlan, setAiPlan]                       = useState(null)
   const [aiLoading, setAiLoading]                 = useState(false)
   const [aiError, setAiError]                     = useState('')
+  const [showManualItinerary, setShowManualItinerary] = useState(false)
   const [checkItems, setCheckItems]               = useState([])
   const [checkLoading, setCheckLoading]           = useState(false)
   const [memories, setMemories]                   = useState([])
@@ -703,88 +704,14 @@ export default function TripDetailPage() {
 
   const EXP_CATS = ['flight','accommodation','food','transport','activities','shopping','visa','insurance','communication','other']
 
-  // ── Tab: Itinerary & AI ───────────────────────────────────────────────────
-  const TabItinerary = (
-    <div className="space-y-4">
-      {/* AI Travel Assistant */}
-      <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🤖</span>
-            <h3 className="font-bold text-slate-800 font-display">AI Travel Assistant</h3>
-          </div>
-          {!aiLoading && (
-            <button onClick={() => { setAiPlan(null); loadAiPlan() }}
-              className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-              <Sparkles size={13} /> {aiPlan ? 'Regenerate' : 'Generate AI Plan'}
-            </button>
-          )}
-        </div>
-        {aiLoading ? (
-          <div className="flex items-center gap-3 text-indigo-600 py-4 justify-center">
-            <Loader2 size={22} className="animate-spin" />
-            <span className="font-medium text-sm">Crafting your itinerary...</span>
-          </div>
-        ) : aiError ? (
-          <div className="text-center py-4 space-y-2">
-            <p className="text-slate-600 text-sm">{aiError}</p>
-            <button onClick={loadAiPlan} className="btn-primary text-xs py-1.5 inline-flex items-center gap-1.5"><Brain size={13} /> Try Again</button>
-          </div>
-        ) : !aiPlan ? (
-          <p className="text-slate-500 text-sm">Let Gemini AI craft a personalised day-by-day itinerary for {getDestination(trip)}. Click Generate to start.</p>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-slate-600 text-sm leading-relaxed">{aiPlan.overview}</p>
-            {aiPlan.highlights?.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {aiPlan.highlights.map((h, i) => (
-                  <span key={i} className="text-xs bg-white border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">{h}</span>
-                ))}
-              </div>
-            )}
-            {(aiPlan.days || []).map(day => (
-              <div key={day.day} className="bg-white rounded-xl p-3 border border-indigo-100 space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-                    {day.day}
-                  </div>
-                  <h4 className="font-bold text-slate-800 text-sm font-display">{day.theme}</h4>
-                </div>
-                <div className="grid sm:grid-cols-3 gap-2">
-                  {[['🌅 Morning', day.morning], ['☀️ Afternoon', day.afternoon], ['🌙 Evening', day.evening]].map(([label, text]) => (
-                    <div key={label} className="bg-slate-50 rounded-lg p-2">
-                      <div className="text-[10px] font-bold text-slate-500 mb-0.5">{label}</div>
-                      <p className="text-xs text-slate-700 leading-relaxed">{text}</p>
-                    </div>
-                  ))}
-                </div>
-                {day.tip && (
-                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg p-2">
-                    <span className="text-sm flex-shrink-0">💡</span>
-                    <p className="text-xs text-amber-800">{day.tip}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-            {aiPlan.practical && (
-              <div className="bg-white rounded-xl p-3 border border-indigo-100">
-                <div className="text-xs font-bold text-slate-500 mb-2">Practical Tips</div>
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {[['🗓️ Best Time', aiPlan.practical.best_time], ['🚇 Getting Around', aiPlan.practical.getting_around], ['💰 Budget Tip', aiPlan.practical.budget_tip], ['🍜 Must Try', aiPlan.practical.must_try]].map(([label, text]) => text && (
-                    <div key={label} className="bg-slate-50 rounded-lg p-2">
-                      <div className="text-[10px] font-bold text-slate-500 mb-0.5">{label}</div>
-                      <p className="text-xs text-slate-700">{text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Day-by-day itinerary */}
+  // ── Tab: AI Itinerary ─────────────────────────────────────────────────────
+  const ManualDays = (
     <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-slate-600">Manual Itinerary</span>
+        <button onClick={() => setShowManualItinerary(false)}
+          className="text-xs text-indigo-600 hover:underline font-semibold">← Back to AI Plan</button>
+      </div>
       {days.length === 0 ? (
         <div className="card text-center py-14">
           <div className="text-4xl mb-3">📅</div>
@@ -797,7 +724,6 @@ export default function TripDetailPage() {
         <>
           {days.map(day => (
             <div key={day.id} className="card overflow-hidden">
-              {/* Day header */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
@@ -806,20 +732,16 @@ export default function TripDetailPage() {
                   <div className="flex-1 min-w-0">
                     {editDayId === day.id ? (
                       <div className="flex items-center gap-1.5">
-                        <input
-                          autoFocus
+                        <input autoFocus
                           className="text-sm font-bold border border-sky-300 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-sky-400 flex-1 min-w-0"
-                          value={editDayTitle}
-                          onChange={e => setEditDayTitle(e.target.value)}
+                          value={editDayTitle} onChange={e => setEditDayTitle(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') handleSaveDayTitle(day.id); if (e.key === 'Escape') setEditDayId(null) }}
-                          placeholder="Day title..."
-                        />
+                          placeholder="Day title..." />
                         <button onClick={() => handleSaveDayTitle(day.id)} className="p-1 rounded-lg bg-sky-500 text-white hover:bg-sky-600 flex-shrink-0"><Check size={13} /></button>
                         <button onClick={() => setEditDayId(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 flex-shrink-0"><X size={13} /></button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => { setEditDayId(day.id); setEditDayTitle(day.title || '') }}
+                      <button onClick={() => { setEditDayId(day.id); setEditDayTitle(day.title || '') }}
                         className="group flex items-center gap-1.5 text-left w-full">
                         <div className="font-bold text-slate-800 font-display text-sm">
                           {day.title || format(parseISO(day.date), 'EEEE')}
@@ -833,14 +755,11 @@ export default function TripDetailPage() {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => { setSelectedDay(day); setActivityModal(true) }}
+                <button onClick={() => { setSelectedDay(day); setActivityModal(true) }}
                   className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">
                   <Plus size={13} /> Add
                 </button>
               </div>
-
-              {/* Activities */}
               {day.activities?.length > 0 ? (
                 <div className="mt-3 pl-14 space-y-1">
                   {day.activities.map(a => (
@@ -865,17 +784,142 @@ export default function TripDetailPage() {
               )}
             </div>
           ))}
-
-          {/* Add day */}
-          <button
-            onClick={handleAddDay}
-            disabled={addingDay}
+          <button onClick={handleAddDay} disabled={addingDay}
             className="w-full card border-dashed border-2 border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 transition-all text-sm font-semibold text-slate-400 hover:text-sky-600 py-4 flex items-center justify-center gap-2">
             <Plus size={16} /> {addingDay ? 'Adding...' : 'Add Day'}
           </button>
         </>
       )}
     </div>
+  )
+
+  const TabItinerary = (
+    <div className="space-y-4">
+      {aiLoading ? (
+        <div className="card text-center py-20 space-y-4">
+          <Loader2 size={36} className="animate-spin text-indigo-500 mx-auto" />
+          <div>
+            <p className="font-semibold text-slate-700 text-lg">Building your AI itinerary…</p>
+            <p className="text-slate-400 text-sm mt-1">Gemini is planning your {getDestination(trip)} trip</p>
+          </div>
+        </div>
+      ) : aiError ? (
+        <div className="card text-center py-16 space-y-4">
+          <div className="text-4xl">😕</div>
+          <p className="text-slate-600 font-semibold">{aiError}</p>
+          <button onClick={loadAiPlan} className="btn-primary inline-flex items-center gap-2 px-5 py-2.5">
+            <Brain size={15} /> Try Again
+          </button>
+        </div>
+      ) : !aiPlan && !showManualItinerary ? (
+        <div className="card text-center py-20 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100 space-y-5">
+          <div className="text-6xl">✨</div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-xl font-display mb-2">Generate AI Itinerary</h3>
+            <p className="text-slate-500 text-sm max-w-xs mx-auto">Let AI create a personalised day-by-day itinerary for your trip to {getDestination(trip)}</p>
+          </div>
+          <button onClick={loadAiPlan} className="btn-primary inline-flex items-center gap-2 px-7 py-3 text-base">
+            <Sparkles size={18} /> Generate AI Itinerary
+          </button>
+          <button onClick={() => setShowManualItinerary(true)}
+            className="block mx-auto text-xs text-slate-400 hover:text-slate-600 underline">
+            Switch to manual itinerary
+          </button>
+        </div>
+      ) : showManualItinerary ? (
+        ManualDays
+      ) : (
+        <>
+          {/* AI Plan header */}
+          <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">🤖</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-slate-800 font-display">AI Itinerary</h3>
+                {aiPlan.overview && <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{aiPlan.overview}</p>}
+              </div>
+              <button onClick={() => { setAiPlan(null); loadAiPlan() }}
+                className="text-xs text-indigo-600 hover:underline font-semibold flex-shrink-0">Regenerate</button>
+            </div>
+            {aiPlan.highlights?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {aiPlan.highlights.map((h, i) => (
+                  <span key={i} className="text-xs bg-white border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">{h}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* AI day cards as primary */}
+          {(aiPlan.days || []).map(day => {
+            const manualDay = days.find(d => d.day_number === day.day)
+            return (
+              <div key={day.day} className="card space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
+                    {day.day}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-slate-800 font-display text-sm">{day.theme}</h4>
+                    {manualDay?.date && <p className="text-xs text-slate-400">{format(parseISO(manualDay.date), 'EEEE, MMM d')}</p>}
+                  </div>
+                  <button
+                    onClick={() => { setSelectedDay(manualDay || null); setActivityModal(true) }}
+                    className="text-xs font-semibold text-sky-600 hover:bg-sky-50 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0 border border-sky-100">
+                    ✏️ Edit
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2">
+                  {[['🌅 Morning', day.morning], ['☀️ Afternoon', day.afternoon], ['🌙 Evening', day.evening]].map(([label, text]) => (
+                    <div key={label} className="bg-slate-50 rounded-xl p-3">
+                      <div className="text-[10px] font-bold text-slate-500 mb-1">{label}</div>
+                      <p className="text-xs text-slate-700 leading-relaxed">{text}</p>
+                    </div>
+                  ))}
+                </div>
+                {day.tip && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                    <span className="text-sm flex-shrink-0">💡</span>
+                    <p className="text-xs text-amber-800">{day.tip}</p>
+                  </div>
+                )}
+                {manualDay?.activities?.length > 0 && (
+                  <div className="border-t border-slate-100 pt-2 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Your activities</p>
+                    {manualDay.activities.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 py-1">
+                        <span className="text-sm">{CAT[a.category]?.emoji || '📍'}</span>
+                        <span className="text-xs font-semibold text-slate-700 flex-1">{a.title}</span>
+                        {a.start_time && <span className="text-xs text-slate-400">{a.start_time.slice(0,5)}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Practical tips */}
+          {aiPlan.practical && (
+            <div className="card">
+              <h3 className="font-bold text-slate-800 font-display mb-3 text-sm">Practical Tips</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[['🗓️ Best Time', aiPlan.practical.best_time], ['🚇 Getting Around', aiPlan.practical.getting_around], ['💰 Budget Tip', aiPlan.practical.budget_tip], ['🍜 Must Try', aiPlan.practical.must_try]].map(([label, text]) => text && (
+                  <div key={label} className="bg-slate-50 rounded-xl p-3">
+                    <div className="text-[10px] font-bold text-slate-500 mb-1">{label}</div>
+                    <p className="text-xs text-slate-700">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button onClick={() => setShowManualItinerary(true)}
+            className="w-full text-center text-xs text-slate-400 hover:text-slate-600 py-2 underline">
+            Switch to manual itinerary
+          </button>
+        </>
+      )}
     </div>
   )
 
