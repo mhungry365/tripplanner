@@ -16,8 +16,7 @@ import { calculateCompatibility } from '../lib/compatibility'
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'itinerary',  label: 'Itinerary',  emoji: '📅' },
-  { id: 'ai_plan',    label: 'AI Plan',    emoji: '🤖' },
+  { id: 'itinerary',  label: 'Itinerary & AI', emoji: '🗺️' },
   { id: 'hotels',     label: 'Hotels',     emoji: '🏨' },
   { id: 'transport',  label: 'Transport',  emoji: '✈️' },
   { id: 'activities', label: 'Activities', emoji: '📍' },
@@ -262,7 +261,7 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     if (!trip || !id) return
-    if (activeTab === 'ai_plan'    && !aiPlan && !aiLoading)                      loadAiPlan()
+    if (activeTab === 'itinerary'  && !aiPlan && !aiLoading)                      loadAiPlan()
     if (activeTab === 'checklist'  && checkItems.length === 0 && !checkLoading)   loadChecklist()
     if (activeTab === 'travellers' && fellowTravellers.length === 0 && !travellersLoading) loadFellowTravellers()
     if (activeTab === 'memories'   && memories.length === 0 && !memoriesLoading)  loadMemories()
@@ -704,8 +703,87 @@ export default function TripDetailPage() {
 
   const EXP_CATS = ['flight','accommodation','food','transport','activities','shopping','visa','insurance','communication','other']
 
-  // ── Tab: Itinerary ────────────────────────────────────────────────────────
+  // ── Tab: Itinerary & AI ───────────────────────────────────────────────────
   const TabItinerary = (
+    <div className="space-y-4">
+      {/* AI Travel Assistant */}
+      <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🤖</span>
+            <h3 className="font-bold text-slate-800 font-display">AI Travel Assistant</h3>
+          </div>
+          {!aiLoading && (
+            <button onClick={() => { setAiPlan(null); loadAiPlan() }}
+              className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
+              <Sparkles size={13} /> {aiPlan ? 'Regenerate' : 'Generate AI Plan'}
+            </button>
+          )}
+        </div>
+        {aiLoading ? (
+          <div className="flex items-center gap-3 text-indigo-600 py-4 justify-center">
+            <Loader2 size={22} className="animate-spin" />
+            <span className="font-medium text-sm">Crafting your itinerary...</span>
+          </div>
+        ) : aiError ? (
+          <div className="text-center py-4 space-y-2">
+            <p className="text-slate-600 text-sm">{aiError}</p>
+            <button onClick={loadAiPlan} className="btn-primary text-xs py-1.5 inline-flex items-center gap-1.5"><Brain size={13} /> Try Again</button>
+          </div>
+        ) : !aiPlan ? (
+          <p className="text-slate-500 text-sm">Let Gemini AI craft a personalised day-by-day itinerary for {getDestination(trip)}. Click Generate to start.</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-slate-600 text-sm leading-relaxed">{aiPlan.overview}</p>
+            {aiPlan.highlights?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {aiPlan.highlights.map((h, i) => (
+                  <span key={i} className="text-xs bg-white border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">{h}</span>
+                ))}
+              </div>
+            )}
+            {(aiPlan.days || []).map(day => (
+              <div key={day.day} className="bg-white rounded-xl p-3 border border-indigo-100 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    {day.day}
+                  </div>
+                  <h4 className="font-bold text-slate-800 text-sm font-display">{day.theme}</h4>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2">
+                  {[['🌅 Morning', day.morning], ['☀️ Afternoon', day.afternoon], ['🌙 Evening', day.evening]].map(([label, text]) => (
+                    <div key={label} className="bg-slate-50 rounded-lg p-2">
+                      <div className="text-[10px] font-bold text-slate-500 mb-0.5">{label}</div>
+                      <p className="text-xs text-slate-700 leading-relaxed">{text}</p>
+                    </div>
+                  ))}
+                </div>
+                {day.tip && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg p-2">
+                    <span className="text-sm flex-shrink-0">💡</span>
+                    <p className="text-xs text-amber-800">{day.tip}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+            {aiPlan.practical && (
+              <div className="bg-white rounded-xl p-3 border border-indigo-100">
+                <div className="text-xs font-bold text-slate-500 mb-2">Practical Tips</div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {[['🗓️ Best Time', aiPlan.practical.best_time], ['🚇 Getting Around', aiPlan.practical.getting_around], ['💰 Budget Tip', aiPlan.practical.budget_tip], ['🍜 Must Try', aiPlan.practical.must_try]].map(([label, text]) => text && (
+                    <div key={label} className="bg-slate-50 rounded-lg p-2">
+                      <div className="text-[10px] font-bold text-slate-500 mb-0.5">{label}</div>
+                      <p className="text-xs text-slate-700">{text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Day-by-day itinerary */}
     <div className="space-y-3">
       {days.length === 0 ? (
         <div className="card text-center py-14">
@@ -797,6 +875,7 @@ export default function TripDetailPage() {
           </button>
         </>
       )}
+    </div>
     </div>
   )
 
@@ -1142,100 +1221,6 @@ export default function TripDetailPage() {
     </div>
   )
 
-  // ── Tab: AI Plan ──────────────────────────────────────────────────────────
-  const TabAiPlan = (
-    <div className="space-y-4">
-      {aiLoading ? (
-        <div className="card text-center py-16 space-y-4">
-          <div className="inline-flex items-center gap-3 text-indigo-600">
-            <Loader2 size={28} className="animate-spin" />
-            <span className="font-semibold text-lg">Crafting your itinerary...</span>
-          </div>
-          <p className="text-slate-500 text-sm">Gemini AI is planning your {getDestination(trip)} adventure</p>
-        </div>
-      ) : aiError ? (
-        <div className="card text-center py-12 space-y-3">
-          <div className="text-4xl">😕</div>
-          <p className="text-slate-600 font-semibold">{aiError}</p>
-          <button onClick={loadAiPlan} className="btn-primary text-sm py-2 inline-flex items-center gap-2">
-            <Brain size={15} /> Try Again
-          </button>
-        </div>
-      ) : !aiPlan ? (
-        <div className="card text-center py-16 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100 space-y-4">
-          <div className="text-5xl">🤖</div>
-          <div>
-            <h3 className="font-bold text-slate-800 text-xl font-display mb-1">AI Trip Planner</h3>
-            <p className="text-slate-500 text-sm max-w-sm mx-auto">Let Gemini AI craft a personalised day-by-day itinerary for {getDestination(trip)}</p>
-          </div>
-          <button onClick={loadAiPlan} className="btn-primary inline-flex items-center gap-2 px-6 py-3">
-            <Sparkles size={16} /> Generate My Itinerary
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">🤖</span>
-              <div>
-                <h3 className="font-bold text-slate-800 font-display mb-1">AI Overview</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{aiPlan.overview}</p>
-              </div>
-            </div>
-            {aiPlan.highlights?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {aiPlan.highlights.map((h, i) => (
-                  <span key={i} className="text-xs bg-white border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">{h}</span>
-                ))}
-              </div>
-            )}
-          </div>
-          {(aiPlan.days || []).map(day => (
-            <div key={day.day} className="card space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
-                  {day.day}
-                </div>
-                <h3 className="font-bold text-slate-800 font-display">{day.theme}</h3>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-3">
-                {[['🌅 Morning', day.morning], ['☀️ Afternoon', day.afternoon], ['🌙 Evening', day.evening]].map(([label, text]) => (
-                  <div key={label} className="bg-slate-50 rounded-xl p-3">
-                    <div className="text-xs font-bold text-slate-500 mb-1">{label}</div>
-                    <p className="text-sm text-slate-700 leading-relaxed">{text}</p>
-                  </div>
-                ))}
-              </div>
-              {day.tip && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
-                  <span className="text-base flex-shrink-0">💡</span>
-                  <p className="text-xs text-amber-800">{day.tip}</p>
-                </div>
-              )}
-            </div>
-          ))}
-          {aiPlan.practical && (
-            <div className="card">
-              <h3 className="font-bold text-slate-800 font-display mb-3">Practical Tips</h3>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {[['🗓️ Best Time', aiPlan.practical.best_time], ['🚇 Getting Around', aiPlan.practical.getting_around], ['💰 Budget Tip', aiPlan.practical.budget_tip], ['🍜 Must Try', aiPlan.practical.must_try]].map(([label, text]) => text && (
-                  <div key={label} className="bg-slate-50 rounded-xl p-3">
-                    <div className="text-xs font-bold text-slate-500 mb-1">{label}</div>
-                    <p className="text-sm text-slate-700">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <button onClick={() => { setAiPlan(null); loadAiPlan() }}
-            className="w-full card border-dashed border-2 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all text-sm font-semibold text-indigo-500 hover:text-indigo-700 py-4 flex items-center justify-center gap-2">
-            <Sparkles size={15} /> Regenerate Itinerary
-          </button>
-        </>
-      )}
-    </div>
-  )
-
   // ── Tab: Visa ─────────────────────────────────────────────────────────────
   const PASSPORT_COUNTRIES = ['Afghan','Albanian','Algerian','Andorran','Angolan','Antiguan','Argentine','Armenian','Australian','Austrian','Azerbaijani','Bahamian','Bahraini','Bangladeshi','Barbadian','Belarusian','Belgian','Belizean','Beninese','Bhutanese','Bolivian','Bosnian','Botswanan','Brazilian','Bruneian','Bulgarian','Burkinabe','Burundian','Cambodian','Cameroonian','Canadian','Cape Verdean','Central African','Chadian','Chilean','Chinese','Colombian','Comorian','Congolese','Costa Rican','Croatian','Cuban','Cypriot','Czech','Danish','Djiboutian','Dominican','East Timorese','Ecuadorian','Egyptian','Emirati','Equatorial Guinean','Eritrean','Estonian','Eswatini','Ethiopian','Fijian','Finnish','French','Gabonese','Gambian','Georgian','German','Ghanaian','Greek','Grenadian','Guatemalan','Guinean','Guinea-Bissauan','Guyanese','Haitian','Honduran','Hungarian','Icelander','Indian','Indonesian','Iranian','Iraqi','Irish','Israeli','Italian','Ivorian','Jamaican','Japanese','Jordanian','Kazakhstani','Kenyan','Kiribati','Kuwaiti','Kyrgyz','Laotian','Latvian','Lebanese','Lesothan','Liberian','Libyan','Liechtensteiner','Lithuanian','Luxembourger','Malagasy','Malawian','Malaysian','Maldivian','Malian','Maltese','Marshallese','Mauritanian','Mauritian','Mexican','Micronesian','Moldovan','Monegasque','Mongolian','Montenegrin','Moroccan','Mozambican','Namibian','Nauruan','Nepali','New Zealand','Nicaraguan','Nigerian','Nigerien','North Korean','North Macedonian','Norwegian','Omani','Pakistani','Palauan','Palestinian','Panamanian','Papua New Guinean','Paraguayan','Peruvian','Filipino','Polish','Portuguese','Qatari','Romanian','Russian','Rwandan','Saint Kitts and Nevis','Saint Lucian','Saint Vincentian','Samoan','San Marinese','Sao Tomean','Saudi Arabian','Senegalese','Serbian','Seychellois','Sierra Leonean','Singaporean','Slovak','Slovenian','Solomon Islander','Somali','South African','South Korean','South Sudanese','Spanish','Sri Lankan','Sudanese','Surinamese','Swedish','Swiss','Syrian','Tajik','Tanzanian','Thai','Togolese','Tongan','Trinidadian','Tunisian','Turkmen','Tuvaluan','Ugandan','Ukrainian','British','Uruguayan','American','Uzbek','Vanuatuan','Venezuelan','Vietnamese','Yemeni','Zambian','Zimbabwean']
 
@@ -1500,7 +1485,7 @@ export default function TripDetailPage() {
     </div>
   )
 
-  const tabContent = { itinerary: TabItinerary, ai_plan: TabAiPlan, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget, visa: TabVisa, checklist: TabChecklist, travellers: TabTravellers, memories: TabMemories }
+  const tabContent = { itinerary: TabItinerary, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget, visa: TabVisa, checklist: TabChecklist, travellers: TabTravellers, memories: TabMemories }
 
   // ─── Render ───────────────────────────────────────────────────────────────
   const daysUntil = getDaysUntilTrip(trip)

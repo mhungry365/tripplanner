@@ -24,6 +24,25 @@ Respond ONLY with a JSON object in this exact format, no markdown, no explanatio
 "source": "name of the official source used"
 }`
 
+  const EMBASSY_FALLBACKS = {
+    'Slovakia': {
+      visa_required: null,
+      visa_type: 'Check embassy website',
+      notes: 'Please check the official Slovak embassy website for current visa requirements.',
+      embassy_url: 'https://www.mzv.sk/en/web/dublin-en',
+      apply_url: 'https://www.vfsvisaonline.com',
+      source: 'Embassy of Slovakia in Dublin'
+    },
+    'default': {
+      visa_required: null,
+      visa_type: 'Check embassy website',
+      notes: 'Please check the official embassy website for current visa requirements.',
+      embassy_url: 'https://www.iatatravelcentre.com',
+      apply_url: 'https://www.vfsvisaonline.com',
+      source: 'IATA Travel Centre'
+    }
+  }
+
   try {
     const upstream = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -47,6 +66,7 @@ Respond ONLY with a JSON object in this exact format, no markdown, no explanatio
     const result = JSON.parse(text)
     res.status(200).json(result)
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch visa info', details: err.message })
+    const fallback = EMBASSY_FALLBACKS[destination_country] || EMBASSY_FALLBACKS['default']
+    return res.status(200).json({ ...fallback, destination })
   }
 }
