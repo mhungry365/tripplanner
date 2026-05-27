@@ -22,6 +22,7 @@ const TABS = [
   { id: 'transport',  label: 'Transport',  emoji: '✈️' },
   { id: 'activities', label: 'Activities', emoji: '📍' },
   { id: 'budget',     label: 'Budget',     emoji: '💰' },
+  { id: 'visa',       label: 'Visa',       emoji: '🛂' },
   { id: 'checklist',  label: 'Checklist',  emoji: '📋' },
   { id: 'travellers', label: 'Travellers', emoji: '👥' },
   { id: 'memories',   label: 'Memories',   emoji: '📸' },
@@ -1235,11 +1236,122 @@ export default function TripDetailPage() {
     </div>
   )
 
+  // ── Tab: Visa ─────────────────────────────────────────────────────────────
+  const PASSPORT_COUNTRIES = ['Afghan','Albanian','Algerian','Andorran','Angolan','Antiguan','Argentine','Armenian','Australian','Austrian','Azerbaijani','Bahamian','Bahraini','Bangladeshi','Barbadian','Belarusian','Belgian','Belizean','Beninese','Bhutanese','Bolivian','Bosnian','Botswanan','Brazilian','Bruneian','Bulgarian','Burkinabe','Burundian','Cambodian','Cameroonian','Canadian','Cape Verdean','Central African','Chadian','Chilean','Chinese','Colombian','Comorian','Congolese','Costa Rican','Croatian','Cuban','Cypriot','Czech','Danish','Djiboutian','Dominican','East Timorese','Ecuadorian','Egyptian','Emirati','Equatorial Guinean','Eritrean','Estonian','Eswatini','Ethiopian','Fijian','Finnish','French','Gabonese','Gambian','Georgian','German','Ghanaian','Greek','Grenadian','Guatemalan','Guinean','Guinea-Bissauan','Guyanese','Haitian','Honduran','Hungarian','Icelander','Indian','Indonesian','Iranian','Iraqi','Irish','Israeli','Italian','Ivorian','Jamaican','Japanese','Jordanian','Kazakhstani','Kenyan','Kiribati','Kuwaiti','Kyrgyz','Laotian','Latvian','Lebanese','Lesothan','Liberian','Libyan','Liechtensteiner','Lithuanian','Luxembourger','Malagasy','Malawian','Malaysian','Maldivian','Malian','Maltese','Marshallese','Mauritanian','Mauritian','Mexican','Micronesian','Moldovan','Monegasque','Mongolian','Montenegrin','Moroccan','Mozambican','Namibian','Nauruan','Nepali','New Zealand','Nicaraguan','Nigerian','Nigerien','North Korean','North Macedonian','Norwegian','Omani','Pakistani','Palauan','Palestinian','Panamanian','Papua New Guinean','Paraguayan','Peruvian','Filipino','Polish','Portuguese','Qatari','Romanian','Russian','Rwandan','Saint Kitts and Nevis','Saint Lucian','Saint Vincentian','Samoan','San Marinese','Sao Tomean','Saudi Arabian','Senegalese','Serbian','Seychellois','Sierra Leonean','Singaporean','Slovak','Slovenian','Solomon Islander','Somali','South African','South Korean','South Sudanese','Spanish','Sri Lankan','Sudanese','Surinamese','Swedish','Swiss','Syrian','Tajik','Tanzanian','Thai','Togolese','Tongan','Trinidadian','Tunisian','Turkmen','Tuvaluan','Ugandan','Ukrainian','British','Uruguayan','American','Uzbek','Vanuatuan','Venezuelan','Vietnamese','Yemeni','Zambian','Zimbabwean']
+
+  const visaDest = getDestination(trip)
+  const visaDestCountry = trip?.trip_destinations?.[0]?.country_name || visaDest
+
+  const TabVisa = (
+    <div className="space-y-4">
+      <div style={{ background: '#f8f8ff', border: '1.5px solid #e0e0ff', borderRadius: 16, padding: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>🛂 Visa Requirements</div>
+        <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 16 }}>Travelling to {visaDestCountry}</div>
+        {!passportCountry ? (
+          <div>
+            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 12 }}>Select your passport country to check entry requirements.</p>
+            <select
+              style={{ padding: '10px 16px', borderRadius: 10, border: '1.5px solid #e0e0ff', fontSize: 14, color: '#1a1a2e', background: '#fff', cursor: 'pointer', width: '100%', maxWidth: 320 }}
+              onChange={async (e) => {
+                const val = e.target.value
+                if (!val) return
+                setPassportCountry(val)
+                if (myProfile?.id) await supabase.from('profiles').update({ passport_country: val }).eq('id', myProfile.id)
+                checkVisa(val)
+              }}
+              defaultValue=""
+            >
+              <option value="" disabled>Select your passport country...</option>
+              {PASSPORT_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        ) : visaLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6366f1', fontSize: 14 }}>
+            <div style={{ width: 16, height: 16, border: '2px solid #6366f1', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            Checking requirements for {passportCountry} passport holders...
+          </div>
+        ) : visaInfo && !visaInfo.error && visaInfo.visa_type ? (
+          <div>
+            {/* Status banner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: visaInfo.visa_required ? '#fffbeb' : '#f0fdf4', border: `1.5px solid ${visaInfo.visa_required ? '#fcd34d' : '#86efac'}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+              <span style={{ fontSize: 28 }}>{visaInfo.visa_required ? '📋' : '✅'}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: visaInfo.visa_required ? '#b45309' : '#15803d' }}>{visaInfo.visa_type}</div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{passportCountry} passport → {visaDestCountry}</div>
+              </div>
+              <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }} style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>Change</button>
+            </div>
+
+            {/* Stats row */}
+            {(visaInfo.cost_usd != null || visaInfo.processing_days != null || visaInfo.max_stay_days != null) && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+                {visaInfo.cost_usd != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5', textAlign: 'center' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Cost</div><div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>${visaInfo.cost_usd}</div></div>}
+                {visaInfo.processing_days != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5', textAlign: 'center' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Processing</div><div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>{visaInfo.processing_days}d</div></div>}
+                {visaInfo.max_stay_days != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5', textAlign: 'center' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Max Stay</div><div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>{visaInfo.max_stay_days}d</div></div>}
+              </div>
+            )}
+
+            {/* Notes */}
+            {visaInfo.notes && <p style={{ fontSize: 13, color: '#374151', marginBottom: 16, lineHeight: 1.7, background: '#f9fafb', borderRadius: 10, padding: '12px 14px', border: '1px solid #f0f0f5' }}>{visaInfo.notes}</p>}
+
+            {/* Authority links */}
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 10 }}>Official Links</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {visaInfo.apply_url && (
+                <a href={visaInfo.apply_url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', borderRadius: 12, textDecoration: 'none' }}>
+                  <span style={{ fontSize: 20 }}>📝</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Apply for Visa</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>Official application portal</div>
+                  </div>
+                  <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.8)', fontSize: 16 }}>→</span>
+                </a>
+              )}
+              {visaInfo.embassy_url && (
+                <a href={visaInfo.embassy_url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#f0f0ff', border: '1.5px solid #e0e0ff', borderRadius: 12, textDecoration: 'none' }}>
+                  <span style={{ fontSize: 20 }}>🏛️</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5' }}>Embassy / Consulate</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>Official embassy website</div>
+                  </div>
+                  <span style={{ marginLeft: 'auto', color: '#a5b4fc', fontSize: 16 }}>→</span>
+                </a>
+              )}
+              {!visaInfo.apply_url && !visaInfo.embassy_url && (
+                <a href={`https://www.iatatravelcentre.com/passport-visa-health-travel-document-requirements.htm`} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#f0f0ff', border: '1.5px solid #e0e0ff', borderRadius: 12, textDecoration: 'none' }}>
+                  <span style={{ fontSize: 20 }}>🌐</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5' }}>IATA Travel Centre</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>Verify entry requirements officially</div>
+                  </div>
+                  <span style={{ marginLeft: 'auto', color: '#a5b4fc', fontSize: 16 }}>→</span>
+                </a>
+              )}
+            </div>
+
+            {visaInfo.source && <p style={{ fontSize: 11, color: '#d1d5db', marginTop: 14 }}>Source: {visaInfo.source}</p>}
+          </div>
+        ) : visaInfo?.error ? (
+          <div>
+            <div style={{ color: '#ef4444', fontSize: 14, marginBottom: 10 }}>Could not load visa info. Please try again.</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button onClick={() => { setVisaInfo(null); checkVisa(passportCountry) }}
+                style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#6366f1', padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>Retry</button>
+              <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }}
+                style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Change passport</button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+
   // ── Tab: Checklist ────────────────────────────────────────────────────────
   const checkByCategory = checkItems.reduce((acc, item) => { if (!acc[item.category]) acc[item.category] = []; acc[item.category].push(item); return acc }, {})
   const doneCount = checkItems.filter(c => c.done).length
-
-  const PASSPORT_COUNTRIES = ['Afghan','Albanian','Algerian','Andorran','Angolan','Antiguan','Argentine','Armenian','Australian','Austrian','Azerbaijani','Bahamian','Bahraini','Bangladeshi','Barbadian','Belarusian','Belgian','Belizean','Beninese','Bhutanese','Bolivian','Bosnian','Botswanan','Brazilian','Bruneian','Bulgarian','Burkinabe','Burundian','Cambodian','Cameroonian','Canadian','Cape Verdean','Central African','Chadian','Chilean','Chinese','Colombian','Comorian','Congolese','Costa Rican','Croatian','Cuban','Cypriot','Czech','Danish','Djiboutian','Dominican','East Timorese','Ecuadorian','Egyptian','Emirati','Equatorial Guinean','Eritrean','Estonian','Eswatini','Ethiopian','Fijian','Finnish','French','Gabonese','Gambian','Georgian','German','Ghanaian','Greek','Grenadian','Guatemalan','Guinean','Guinea-Bissauan','Guyanese','Haitian','Honduran','Hungarian','Icelander','Indian','Indonesian','Iranian','Iraqi','Irish','Israeli','Italian','Ivorian','Jamaican','Japanese','Jordanian','Kazakhstani','Kenyan','Kiribati','Kuwaiti','Kyrgyz','Laotian','Latvian','Lebanese','Lesothan','Liberian','Libyan','Liechtensteiner','Lithuanian','Luxembourger','Malagasy','Malawian','Malaysian','Maldivian','Malian','Maltese','Marshallese','Mauritanian','Mauritian','Mexican','Micronesian','Moldovan','Monegasque','Mongolian','Montenegrin','Moroccan','Mozambican','Namibian','Nauruan','Nepali','New Zealand','Nicaraguan','Nigerian','Nigerien','North Korean','North Macedonian','Norwegian','Omani','Pakistani','Palauan','Palestinian','Panamanian','Papua New Guinean','Paraguayan','Peruvian','Filipino','Polish','Portuguese','Qatari','Romanian','Russian','Rwandan','Saint Kitts and Nevis','Saint Lucian','Saint Vincentian','Samoan','San Marinese','Sao Tomean','Saudi Arabian','Senegalese','Serbian','Seychellois','Sierra Leonean','Singaporean','Slovak','Slovenian','Solomon Islander','Somali','South African','South Korean','South Sudanese','Spanish','Sri Lankan','Sudanese','Surinamese','Swedish','Swiss','Syrian','Tajik','Tanzanian','Thai','Togolese','Tongan','Trinidadian','Tunisian','Turkmen','Tuvaluan','Ugandan','Ukrainian','British','Uruguayan','American','Uzbek','Vanuatuan','Venezuelan','Vietnamese','Yemeni','Zambian','Zimbabwean']
 
   const TabChecklist = (
     <div className="space-y-4">
@@ -1388,7 +1500,7 @@ export default function TripDetailPage() {
     </div>
   )
 
-  const tabContent = { itinerary: TabItinerary, ai_plan: TabAiPlan, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget, checklist: TabChecklist, travellers: TabTravellers, memories: TabMemories }
+  const tabContent = { itinerary: TabItinerary, ai_plan: TabAiPlan, hotels: TabHotels, transport: TabTransport, activities: TabActivities, budget: TabBudget, visa: TabVisa, checklist: TabChecklist, travellers: TabTravellers, memories: TabMemories }
 
   // ─── Render ───────────────────────────────────────────────────────────────
   const daysUntil = getDaysUntilTrip(trip)
@@ -1492,7 +1604,7 @@ export default function TripDetailPage() {
         {alerts.map((a, i) => {
           if (a.includes('Check visa requirements')) {
             return (
-              <button key={i} onClick={() => { setActiveTab('checklist'); setTimeout(() => document.getElementById('visa-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150) }}
+              <button key={i} onClick={() => setActiveTab('visa')}
                 className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">{a}</button>
             )
           }
@@ -1511,69 +1623,6 @@ export default function TripDetailPage() {
           return <div key={i} className="flex-shrink-0 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-medium px-3 py-2 rounded-xl">{a}</div>
         })}
       </div>
-
-      {/* Visa Intelligence — shown above checklist tab content */}
-      {activeTab === 'checklist' && (
-        <div id="visa-card" style={{ background: '#f8f8ff', border: '1.5px solid #e0e0ff', borderRadius: 16, padding: 20 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12 }}>🛂 Visa Requirements</div>
-          {!passportCountry ? (
-            <div>
-              <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 12 }}>What passport do you hold? We'll check visa requirements for you.</p>
-              <select
-                style={{ padding: '10px 16px', borderRadius: 10, border: '1.5px solid #e0e0ff', fontSize: 14, color: '#1a1a2e', background: '#fff', cursor: 'pointer', width: '100%', maxWidth: 300 }}
-                onChange={async (e) => {
-                  const val = e.target.value
-                  if (!val) return
-                  setPassportCountry(val)
-                  if (myProfile?.id) await supabase.from('profiles').update({ passport_country: val }).eq('id', myProfile.id)
-                  checkVisa(val)
-                }}
-                defaultValue=""
-              >
-                <option value="" disabled>Select your passport country...</option>
-                {PASSPORT_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-          ) : visaLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6366f1', fontSize: 14 }}>
-              <div style={{ width: 16, height: 16, border: '2px solid #6366f1', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              Checking visa requirements for {passportCountry} passport holders...
-            </div>
-          ) : visaInfo && !visaInfo.error && visaInfo.visa_type ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 24 }}>{visaInfo.visa_required ? '📋' : '✅'}</span>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: visaInfo.visa_required ? '#f59e0b' : '#22c55e' }}>{visaInfo.visa_type}</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>For {passportCountry} passport holders</div>
-                </div>
-                <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }} style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Change passport</button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-                {visaInfo.cost_usd != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Cost</div><div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>${visaInfo.cost_usd}</div></div>}
-                {visaInfo.processing_days != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Processing</div><div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>{visaInfo.processing_days} days</div></div>}
-                {visaInfo.max_stay_days != null && <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #f0f0f5' }}><div style={{ fontSize: 11, color: '#9ca3af' }}>Max Stay</div><div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>{visaInfo.max_stay_days} days</div></div>}
-              </div>
-              {visaInfo.notes && <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12, lineHeight: 1.6 }}>{visaInfo.notes}</p>}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {visaInfo.apply_url && <a href={visaInfo.apply_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>Apply Now →</a>}
-                {visaInfo.embassy_url && <a href={visaInfo.embassy_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: '#6366f1', background: '#f0f0ff', padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>Embassy Website →</a>}
-              </div>
-              {visaInfo.source && <p style={{ fontSize: 11, color: '#d1d5db', marginTop: 10 }}>Source: {visaInfo.source}</p>}
-            </div>
-          ) : visaInfo?.error ? (
-            <div>
-              <div style={{ color: '#ef4444', fontSize: 14, marginBottom: 10 }}>Could not load visa info. Please try again.</div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <button onClick={() => { setVisaInfo(null); checkVisa(passportCountry) }}
-                  style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#6366f1', padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>Retry</button>
-                <button onClick={() => { setPassportCountry(''); setVisaInfo(null) }}
-                  style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Change passport</button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
 
       {tabContent[activeTab]}
 
