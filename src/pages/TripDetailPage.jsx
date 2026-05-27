@@ -233,18 +233,18 @@ export default function TripDetailPage() {
       setHotels(data.accommodations || [])
       setLegs(data.transport_legs || [])
       await ensureDays(data)
-      if (myProfile?.id) {
-        const { data: profileData } = await supabase
-          .from('profiles').select('passport_country').eq('id', myProfile.id).single()
-        if (profileData?.passport_country) {
-          setPassportCountry(profileData.passport_country)
-          checkVisa(profileData.passport_country, data)
-        }
-      }
     }
     load()
   }, [id])
 
+  // Load passport country whenever auth resolves (myProfile loads async after mount)
+  useEffect(() => {
+    if (!myProfile?.id || passportCountry) return
+    supabase.from('profiles').select('passport_country').eq('id', myProfile.id).single()
+      .then(({ data }) => { if (data?.passport_country) setPassportCountry(data.passport_country) })
+  }, [myProfile?.id])
+
+  // Run visa check whenever both passport and trip are available
   useEffect(() => {
     if (passportCountry && trip) checkVisa(passportCountry, trip)
   }, [trip?.id, passportCountry])
